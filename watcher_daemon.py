@@ -3,7 +3,7 @@ import asyncio
 import base64
 import base58
 from solana.rpc.async_api import AsyncClient
-from solana.publickey import PublicKey
+from solders.pubkey import Pubkey as PublicKey
 from solana.rpc.types import TokenAccountOpts, TxOpts
 from solders.transaction import VersionedTransaction
 from solders.keypair import Keypair
@@ -46,7 +46,7 @@ async def monitor_coin(mint: str):
                     TokenAccountOpts(mint=mint)
                 )
                 if resp.value:
-                    acct_pubkey = PublicKey(resp.value[0].pubkey)
+                    acct_pubkey = PublicKey.from_string(resp.value[0].pubkey)
                     bal_resp    = await client.get_token_account_balance(acct_pubkey)
                     amt         = int(bal_resp.value.ui_amount * 1e9)
 
