@@ -1,0 +1,60 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+.venv/
+env/
+ENV/
+venv/
+
+# Env files
+.env
+.envrc
+.envrc.sample
+
+# Pytest cache
+.pytest_cache/
+
+# MyPy cache
+.mypy_cache/
+
+# Coverage reports
+htmlcov/
+.coverage
+
+# Editors and IDEs
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Temporary files
+*.log
+
+# Project outputs
+candidates.json
+tokens.json
+
+# GitHub Actions
+# Workflow files are part of source, do not ignore 

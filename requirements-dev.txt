@@ -1,0 +1,6 @@
+-r requirements.txt
+ruff
+flake8
+pylint
+mypy
+bandit 

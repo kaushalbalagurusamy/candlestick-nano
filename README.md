@@ -1,0 +1,115 @@
+# Candlestick Nano
+
+A Solana-based trading toolkit that: 
+
+- Monitors token prices and liquidity using the Jupiter SDK 
+- Executes SOL↔token swaps via QuickNode & Jupiter 
+- Extracts and filters candidate tokens using Jupiter/Metis, DexScreener, and BirdEye APIs
+
+---
+
+## Prerequisites
+
+- Python 3.9+
+- [direnv](https://direnv.net/) (optional, for automatic env loading)
+- `pip` or equivalent
+
+## Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/kaushalbalagurusamy/candlestick-nano.git
+   cd candlestick-nano
+   ```
+
+2. (Optional) Create and activate a virtual environment:
+
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+
+3. Install dependencies:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+## Environment Variables
+
+Copy `.envrc.sample` to `.envrc` and update the placeholders with your credentials:
+
+```bash
+export WALLET_PRIVATE_KEY="<your_base58_private_key>"
+export SOLANA_CLUSTER="devnet"          # one of devnet | testnet | mainnet-beta
+export QUICKNODE_ENDPOINT="<your_rpc_url>"
+export JUPITER_API_BASE_URL="<your_jupiter_api_base_url>"
+export BIRDEYE_API_KEY="<your_birdeye_api_key>"
+# Optional overrides:
+# export AMOUNT_SOL=1.0               # SOL amount to swap per token in buy.py
+# export AMOUNT_SOL_DEFAULT=...      # etc.
+```
+
+Then allow the `.envrc`:
+
+```bash
+direnv allow
+```
+
+## Usage
+
+### 1. Monitor Tokens (Watcher Daemon)
+
+```bash
+python watcher_daemon.py
+```
+
+Spawns watchers for each mint in your `WATCH_MINTS` env var and executes swaps when thresholds are met.
+
+### 2. Buy Tokens
+
+```bash
+python buy.py
+```
+
+Reads `tokens.json` and swaps a fixed SOL amount into each token.
+
+### 3. Extract Candidates
+
+```bash
+python extractor.py
+```
+
+Fetches tradable mints from Jupiter/Metis, evaluates volume, liquidity, security, filters by criteria, and writes `candidates.json`.
+
+## Running Tests
+
+This project includes async pytest tests for environment configuration, RPC & API endpoints, and wallet connectivity.
+
+```bash
+pytest
+```
+
+Ensure `pytest-asyncio` and other dependencies are installed.
+
+## Project Structure
+
+```
+.
+├── .envrc              # direnv configuration to load environment vars
+├── api_contract.yaml   # OpenAPI spec for HTTP endpoints
+├── buy.py              # script to batch-buy tokens
+├── extractor.py        # pipeline to extract/filter candidate tokens
+├── watcher_daemon.py   # daemon to monitor and auto-swap
+├── tokens.json         # input list of tokens for buy.py
+├── candidates.json     # output of extractor.py
+├── requirements.txt    # Python dependencies
+├── tests/
+│   └── test_env.py     # pytest suite for env & API connectivity
+└── README.md           # this file
+```
+
+---
+
+Happy trading! 🚀 

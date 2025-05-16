@@ -1,0 +1,197 @@
+openapi: 3.0.0
+info:
+  title: Trading Algorithm API
+  version: 1.0.0
+
+paths:
+  /watchers:
+    get:
+      summary: List all active watchers
+      responses:
+        '200':
+          description: array of watcher statuses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Watcher'
+    post:
+      summary: Start monitoring a new mint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewWatcher'
+      responses:
+        '201':
+          description: watcher created
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /watchers/So11111111111111111111111111111111111
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Watcher'
+
+  /watchers/{mint}:
+    parameters:
+      - name: mint
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get status of one watcher
+      responses:
+        '200':
+          description: watcher status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Watcher'
+    delete:
+      summary: Stop & remove a watcher
+      responses:
+        '204':
+          description: no content
+
+  /tokens:
+    get:
+      summary: Read tokens.json
+      responses:
+        '200':
+          description: list of trade tokens
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Token'
+    post:
+      summary: Overwrite tokens.json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Token'
+      responses:
+        '200':
+          description: updated token list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Token'
+
+  /buy:
+    post:
+      summary: Trigger SOL→token swaps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuyRequest'
+      responses:
+        '202':
+          description: buy tasks accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Operation'
+
+  /trades:
+    get:
+      summary: List executed trades
+      responses:
+        '200':
+          description: details of past swaps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trade'
+
+components:
+  schemas:
+    Watcher:
+      type: object
+      properties:
+        mint:
+          type: string
+        entryPrice:
+          type: number
+        currentPrice:
+          type: number
+        ratio:
+          type: number
+        status:
+          type: string
+          enum: [running, stopped, error]
+        lastError:
+          type: string
+          nullable: true
+
+    NewWatcher:
+      type: object
+      required: [mint]
+      properties:
+        mint:
+          type: string
+
+    Token:
+      type: object
+      required: [symbol, address]
+      properties:
+        symbol:
+          type: string
+        address:
+          type: string
+
+    BuyRequest:
+      type: object
+      required: [tokens]
+      properties:
+        tokens:
+          type: array
+          items:
+            $ref: '#/components/schemas/Token'
+        amountSol:
+          type: number
+          description: override AMOUNT_SOL (in SOL)
+
+    Operation:
+      type: object
+      properties:
+        operationId:
+          type: string
+        status:
+          type: string
+          enum: [pending, completed, failed]
+
+    Trade:
+      type: object
+      properties:
+        mint:
+          type: string
+        direction:
+          type: string
+          enum: [buy, sell]
+        amount:
+          type: number
+        price:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+        txSig:
+          type: string

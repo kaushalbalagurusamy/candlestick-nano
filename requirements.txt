@@ -1,0 +1,8 @@
+aiohttp
+pytest
+pytest-asyncio
+base58
+solana
+solders
+jupiter-python-sdk
+pytest-xprocess 
