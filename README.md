@@ -97,13 +97,33 @@ This project includes async pytest tests for environment configuration, RPC & AP
 pytest
 ```
 
-Ensure `pytest-asyncio` and other dependencies are installed.
+Ensure `pytest-asyncio` and other dependencies are installed. For devnet tests
+you may need SOL; use `python airdrop.py` to request an airdrop first.
+
+## End-to-End Devnet Workflow
+
+For a complete Devnet run (buys and watchers), use the dedicated end-to-end test:
+
+```bash
+SOLANA_CLUSTER=devnet pytest tests/test_end_to_end_devnet.py
+```
+
+This will:
+- Fetch the top 10 tokens from Jupiter/Metis
+- Execute buys via `buy.py`
+- Spawn watcher daemons for each token (runs for a short period then cancels)
+- Generate logs in `devnet_test_results/YYYYMMDD_HHMMSS.txt`
+
+## Agent Reference
+
+An AI agent guide (`AGENTS.md`) is provided for automated integrations, outlining module entry points, CI hooks, and testing workflows.
 
 ## Project Structure
 
 ```
 .
 ├── .envrc              # direnv configuration to load environment vars
+├── AGENTS.md           # agent-specific guide for AI assistants
 ├── api_contract.yaml   # OpenAPI spec for HTTP endpoints
 ├── buy.py              # script to batch-buy tokens
 ├── extractor.py        # pipeline to extract/filter candidate tokens
@@ -111,9 +131,15 @@ Ensure `pytest-asyncio` and other dependencies are installed.
 ├── tokens.json         # input list of tokens for buy.py
 ├── candidates.json     # output of extractor.py
 ├── requirements.txt    # Python dependencies
-├── tests/
-│   └── test_env.py     # pytest suite for env & API connectivity
-└── README.md           # this file
+├── requirements-dev.txt# development dependencies
+├── pyproject.toml      # Ruff lint configuration
+├── pytest.ini          # pytest configuration
+├── .github/
+│   └── workflows/
+│       └── ci.yml      # GitHub Actions CI pipeline
+└── tests/
+    ├── test_env.py
+    └── test_end_to_end_devnet.py
 ```
 
 ---
