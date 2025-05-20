@@ -8,7 +8,7 @@ Root directory files:
 
 - `.envrc.sample` — environment variable template
 - `buy.py` — batch-buy script using Jupiter SDK
-- `watcher_daemon.py` — token monitoring and auto-swap daemon
+- `exit_monitor.py` — token monitoring and auto-swap daemon
 - `extractor.py` — candidate token extraction pipeline
 - `tokens.json` — input for `buy.py`
 - `candidates.json` — output of extractor
@@ -35,11 +35,11 @@ Key directory:
 - `async def main()` — reads `tokens.json`, performs swaps via Jupiter SDK.
   - Invocation: `await buy.main()` when imported; or `python buy.py` as CLI.
 
-### watcher_daemon.py
+### exit_monitor.py
 
 - `async def monitor_coin(mint: str)` — watch and auto-swap a single token.
 - `async def main()` — spawns one `monitor_coin` task per mint in `WATCH_MINTS`.
-  - Invocation: `await watcher_daemon.main()` when imported; or `python watcher_daemon.py` as CLI.
+  - Invocation: `await exit_monitor.main()` when imported; or `python exit_monitor.py` as CLI.
 
 ### extractor.py
 
@@ -78,10 +78,16 @@ Agents should run with `pytest tests/test_end_to_end_devnet.py` for full workflo
 
 ## 6. Agent Integration Tips
 
-- **Import paths**: Add project root to `sys.path` to import modules (`buy`, `watcher_daemon`, `extractor`).
+- **Import paths**: Add project root to `sys.path` to import modules (`buy`, `exit_monitor`, `extractor`).
 - **Async runtime**: Use `pytest.mark.asyncio` or an `asyncio` event loop for direct invocation.
 - **Logging**: Tests use Python `logging` for structured output.
 - **Cleanup**: Restore or remove side-effects (e.g., `tokens.json`, background tasks) after automated runs.
+
+## 7. Code Size Guidance
+
+To keep the repository easy to navigate for AI agents, keep individual code files
+under **200 lines** whenever possible. Break large modules into smaller ones if a
+file approaches this limit.
 
 ---
 
