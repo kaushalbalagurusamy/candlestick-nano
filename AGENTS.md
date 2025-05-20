@@ -9,6 +9,7 @@ Root directory files:
 - `.envrc.sample` — environment variable template
 - `buy.py` — batch-buy script using Jupiter SDK
 - `exit_monitor.py` — token monitoring and auto-swap daemon
+- `airdrop.py` — devnet/testnet faucet helper (should be run separately)
 - `extractor.py` — candidate token extraction pipeline
 - `airdrop.py` — request devnet/testnet SOL for tests
 - `tokens.json` — input for `buy.py`
@@ -41,6 +42,11 @@ Key directory:
 - `async def monitor_coin(mint: str)` — watch and auto-swap a single token.
 - `async def main()` — spawns one `monitor_coin` task per mint in `WATCH_MINTS`.
   - Invocation: `await exit_monitor.main()` when imported; or `python exit_monitor.py` as CLI.
+
+### airdrop.py
+
+- `async def main()` — requests a 1 SOL airdrop on the configured devnet or testnet.
+  - Run via cron or scheduler (`python airdrop.py`) to keep wallets funded; **tests should not invoke this script**.
 
 ### extractor.py
 
