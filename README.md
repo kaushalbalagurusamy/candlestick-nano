@@ -76,7 +76,16 @@ python buy.py
 
 Reads `tokens.json` and swaps a fixed SOL amount into each token.
 
-### 3. Exit Monitor
+### 3. Request Devnet/Testnet Airdrop
+
+```bash
+python airdrop.py
+```
+
+Requests an airdrop of SOL to the wallet specified in your environment. Only
+works on devnet or testnet clusters.
+
+### 4. Exit Monitor
 
 ```bash
 python exit_monitor.py
@@ -92,7 +101,8 @@ This project includes async pytest tests for environment configuration, RPC & AP
 pytest
 ```
 
-Ensure `pytest-asyncio` and other dependencies are installed.
+Ensure `pytest-asyncio` and other dependencies are installed. For devnet tests
+you may need SOL; use `python airdrop.py` to request an airdrop first.
 
 ## Project Structure
 
@@ -103,6 +113,7 @@ Ensure `pytest-asyncio` and other dependencies are installed.
 ├── buy.py              # script to batch-buy tokens
 ├── extractor.py        # pipeline to extract/filter candidate tokens
 ├── exit_monitor.py     # daemon to monitor and auto-swap
+├── airdrop.py          # request devnet/testnet SOL
 ├── tokens.json         # input list of tokens for buy.py
 ├── candidates.json     # output of extractor.py
 ├── requirements.txt    # Python dependencies
