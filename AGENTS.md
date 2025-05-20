@@ -10,6 +10,7 @@ Root directory files:
 - `buy.py` — batch-buy script using Jupiter SDK
 - `exit_monitor.py` — token monitoring and auto-swap daemon
 - `extractor.py` — candidate token extraction pipeline
+- `airdrop.py` — request devnet/testnet SOL for tests
 - `tokens.json` — input for `buy.py`
 - `candidates.json` — output of extractor
 - `requirements.txt` and `requirements-dev.txt` — runtime and dev deps
