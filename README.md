@@ -76,23 +76,18 @@ python buy.py
 
 Reads `tokens.json` and swaps a fixed SOL amount into each token.
 
-### 3. Request Devnet/Testnet Airdrop
-
-```bash
-python airdrop.py
-```
-
-Triggers a faucet request for 1 SOL on the configured devnet or testnet RPC.
-Run this script on a daily schedule so the wallet always has enough SOL for
-testing.
-
-### 4. Exit Monitor
+### 3. Exit Monitor
 
 ```bash
 python exit_monitor.py
 ```
 
 Spawns watchers for each mint in your `WATCH_MINTS` env var and executes swaps when thresholds are met.
+
+## Code Style
+
+To aid automated agents, keep individual code files under **200 lines** whenever
+possible. Split logic into smaller modules if a file grows beyond this limit.
 
 ## Running Tests
 
@@ -133,7 +128,6 @@ An AI agent guide (`AGENTS.md`) is provided for automated integrations, outlinin
 ├── buy.py              # script to batch-buy tokens
 ├── extractor.py        # pipeline to extract/filter candidate tokens
 ├── exit_monitor.py     # daemon to monitor and auto-swap
-├── airdrop.py          # helper to request devnet/testnet SOL
 ├── tokens.json         # input list of tokens for buy.py
 ├── candidates.json     # output of extractor.py
 ├── requirements.txt    # Python dependencies

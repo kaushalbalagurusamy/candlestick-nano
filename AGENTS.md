@@ -9,7 +9,6 @@ Root directory files:
 - `.envrc.sample` — environment variable template
 - `buy.py` — batch-buy script using Jupiter SDK
 - `exit_monitor.py` — token monitoring and auto-swap daemon
-- `airdrop.py` — devnet/testnet faucet helper (should be run separately)
 - `extractor.py` — candidate token extraction pipeline
 - `airdrop.py` — request devnet/testnet SOL for tests
 - `tokens.json` — input for `buy.py`
@@ -42,11 +41,6 @@ Key directory:
 - `async def monitor_coin(mint: str)` — watch and auto-swap a single token.
 - `async def main()` — spawns one `monitor_coin` task per mint in `WATCH_MINTS`.
   - Invocation: `await exit_monitor.main()` when imported; or `python exit_monitor.py` as CLI.
-
-### airdrop.py
-
-- `async def main()` — requests a 1 SOL airdrop on the configured devnet or testnet.
-  - Run via cron or scheduler (`python airdrop.py`) to keep wallets funded; **tests should not invoke this script**.
 
 ### extractor.py
 
@@ -89,6 +83,12 @@ Agents should run with `pytest tests/test_end_to_end_devnet.py` for full workflo
 - **Async runtime**: Use `pytest.mark.asyncio` or an `asyncio` event loop for direct invocation.
 - **Logging**: Tests use Python `logging` for structured output.
 - **Cleanup**: Restore or remove side-effects (e.g., `tokens.json`, background tasks) after automated runs.
+
+## 7. Code Size Guidance
+
+To keep the repository easy to navigate for AI agents, keep individual code files
+under **200 lines** whenever possible. Break large modules into smaller ones if a
+file approaches this limit.
 
 ---
 

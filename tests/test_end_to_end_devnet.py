@@ -6,12 +6,15 @@ import logging
 from datetime import datetime
 from pathlib import Path
 import aiohttp
+import base58
+from solders.keypair import Keypair
 import base64
 import types
 import exit_monitor
 
 from buy import main as buy_main
 from exit_monitor import monitor_coin
+from solana.rpc.async_api import AsyncClient
 
 # Skip end-to-end if not running on devnet
 pytestmark = pytest.mark.skipif(
@@ -45,13 +48,20 @@ async def test_end_to_end_devnet(tmp_path):
     tokens_file = Path(__file__).parent / "devnet_tokens.json"
     tokens_file.write_text(json.dumps(tokens))
 
-    # 4. Perform buys via buy_main (assumes wallet already funded)
+    # 4. Airdrop SOL and perform buys via buy_main
     root_tokens = Path(__file__).parent.parent / "tokens.json"
     backup = root_tokens.read_text() if root_tokens.exists() else None
     root_tokens.write_text(tokens_file.read_text())
 
     os.environ["AMOUNT_SOL"] = "0.001"
 
+    rpc_url = os.environ["QUICKNODE_ENDPOINT"]
+    private_key = os.environ["WALLET_PRIVATE_KEY"]
+    kp = Keypair.from_bytes(base58.b58decode(private_key))
+    client = AsyncClient(rpc_url)
+    sig = await client.request_airdrop(kp.pubkey(), int(1_000_000_000))
+    await client.confirm_transaction(sig.value)
+    await client.close()
     try:
         await buy_main()
         logger.info("buy_main completed successfully")
