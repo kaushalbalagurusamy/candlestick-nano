@@ -82,8 +82,9 @@ Reads `tokens.json` and swaps a fixed SOL amount into each token.
 python airdrop.py
 ```
 
-Requests an airdrop of SOL to the wallet specified in your environment. Only
-works on devnet or testnet clusters.
+Triggers a faucet request for 1 SOL on the configured devnet or testnet RPC.
+Run this script on a daily schedule so the wallet always has enough SOL for
+testing.
 
 ### 4. Exit Monitor
 
@@ -132,7 +133,7 @@ An AI agent guide (`AGENTS.md`) is provided for automated integrations, outlinin
 ├── buy.py              # script to batch-buy tokens
 ├── extractor.py        # pipeline to extract/filter candidate tokens
 ├── exit_monitor.py     # daemon to monitor and auto-swap
-├── airdrop.py          # request devnet/testnet SOL
+├── airdrop.py          # helper to request devnet/testnet SOL
 ├── tokens.json         # input list of tokens for buy.py
 ├── candidates.json     # output of extractor.py
 ├── requirements.txt    # Python dependencies
