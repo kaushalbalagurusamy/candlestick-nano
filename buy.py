@@ -17,7 +17,7 @@ PRIVATE_KEY = os.environ["WALLET_PRIVATE_KEY"]
 AMOUNT_SOL  = float(os.getenv("AMOUNT_SOL", "1"))  
 
 SOL_MINT    = "So11111111111111111111111111111111111111112"
-SLIPPAGE_BPS= 10  # 0.1%
+SLIPPAGE_BPS= 500  # 5%
 
 async def buy_token(jup: Jupiter, client: AsyncClient, mint: str):
     amount = int(AMOUNT_SOL * 1e9)
