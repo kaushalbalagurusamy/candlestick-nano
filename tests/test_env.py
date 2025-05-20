@@ -28,6 +28,11 @@ async def test_rpc_endpoint():
 @pytest.mark.asyncio
 async def test_wallet_connection_and_balance():
     rpc_url = os.environ["QUICKNODE_ENDPOINT"]
+    cluster = os.environ["SOLANA_CLUSTER"]
+    # rudimentary check that the RPC URL matches the chosen cluster
+    if cluster != "mainnet-beta":
+        assert cluster in rpc_url, "RPC endpoint does not match SOLANA_CLUSTER"
+
     private_key = os.environ["WALLET_PRIVATE_KEY"]
     kp = Keypair.from_bytes(base58.b58decode(private_key))
     client = AsyncClient(rpc_url)
