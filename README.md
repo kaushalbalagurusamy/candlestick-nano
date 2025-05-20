@@ -59,13 +59,14 @@ direnv allow
 
 ## Usage
 
-### 1. Monitor Tokens (Watcher Daemon)
+
+### 1. Extract Candidates
 
 ```bash
-python watcher_daemon.py
+python extractor.py
 ```
 
-Spawns watchers for each mint in your `WATCH_MINTS` env var and executes swaps when thresholds are met.
+Fetches tradable mints from Jupiter/Metis, evaluates volume, liquidity, security, filters by criteria, and writes `candidates.json`.
 
 ### 2. Buy Tokens
 
@@ -75,13 +76,22 @@ python buy.py
 
 Reads `tokens.json` and swaps a fixed SOL amount into each token.
 
-### 3. Extract Candidates
+### 3. Request Devnet/Testnet Airdrop
 
 ```bash
-python extractor.py
+python airdrop.py
 ```
 
-Fetches tradable mints from Jupiter/Metis, evaluates volume, liquidity, security, filters by criteria, and writes `candidates.json`.
+Requests an airdrop of SOL to the wallet specified in your environment. Only
+works on devnet or testnet clusters.
+
+### 4. Exit Monitor
+
+```bash
+python exit_monitor.py
+```
+
+Spawns watchers for each mint in your `WATCH_MINTS` env var and executes swaps when thresholds are met.
 
 ## Running Tests
 
@@ -91,7 +101,8 @@ This project includes async pytest tests for environment configuration, RPC & AP
 pytest
 ```
 
-Ensure `pytest-asyncio` and other dependencies are installed.
+Ensure `pytest-asyncio` and other dependencies are installed. For devnet tests
+you may need SOL; use `python airdrop.py` to request an airdrop first.
 
 ## End-to-End Devnet Workflow
 
@@ -120,7 +131,8 @@ An AI agent guide (`AGENTS.md`) is provided for automated integrations, outlinin
 ├── api_contract.yaml   # OpenAPI spec for HTTP endpoints
 ├── buy.py              # script to batch-buy tokens
 ├── extractor.py        # pipeline to extract/filter candidate tokens
-├── watcher_daemon.py   # daemon to monitor and auto-swap
+├── exit_monitor.py     # daemon to monitor and auto-swap
+├── airdrop.py          # request devnet/testnet SOL
 ├── tokens.json         # input list of tokens for buy.py
 ├── candidates.json     # output of extractor.py
 ├── requirements.txt    # Python dependencies
