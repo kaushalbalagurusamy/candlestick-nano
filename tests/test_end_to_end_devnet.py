@@ -6,9 +6,14 @@ import logging
 from datetime import datetime
 from pathlib import Path
 import aiohttp
+import base58
+from solders.keypair import Keypair
+import base64
+import types
+import exit_monitor
 
 from buy import main as buy_main
-from watcher_daemon import monitor_coin
+from exit_monitor import monitor_coin
 from solana.rpc.async_api import AsyncClient
 
 # Skip end-to-end if not running on devnet
@@ -43,17 +48,24 @@ async def test_end_to_end_devnet(tmp_path):
     tokens_file = Path(__file__).parent / "devnet_tokens.json"
     tokens_file.write_text(json.dumps(tokens))
 
-    # 4. Perform buys via buy_main
-    # Copy the test token file to root tokens.json
+    # 4. Airdrop SOL and perform buys via buy_main
     root_tokens = Path(__file__).parent.parent / "tokens.json"
     backup = root_tokens.read_text() if root_tokens.exists() else None
     root_tokens.write_text(tokens_file.read_text())
+
+    os.environ["AMOUNT_SOL"] = "0.001"
+
+    rpc_url = os.environ["QUICKNODE_ENDPOINT"]
+    private_key = os.environ["WALLET_PRIVATE_KEY"]
+    kp = Keypair.from_bytes(base58.b58decode(private_key))
+    client = AsyncClient(rpc_url)
+    sig = await client.request_airdrop(kp.pubkey(), int(1_000_000_000))
+    await client.confirm_transaction(sig.value)
+    await client.close()
     try:
-        # Run buy script
         await buy_main()
         logger.info("buy_main completed successfully")
     finally:
-        # Restore original tokens.json
         if backup is not None:
             root_tokens.write_text(backup)
 
@@ -71,5 +83,65 @@ async def test_end_to_end_devnet(tmp_path):
         with pytest.raises(asyncio.CancelledError):
             await task
     logger.info("Watchers cancelled cleanly")
-    # Cleanup
-    logger.removeHandler(fh) 
+    logger.removeHandler(fh)
+
+
+@pytest.mark.asyncio
+async def test_exit_monitor_executes_swap(monkeypatch):
+    """Ensure the exit monitor performs a swap when price thresholds hit."""
+
+    send_called = {
+        "sent": False,
+    }
+
+    class DummyClient:
+        def __init__(self, *a, **k):
+            pass
+
+        async def get_token_accounts_by_owner(self, *a, **k):
+            return types.SimpleNamespace(value=[types.SimpleNamespace(pubkey="X")])
+
+        async def get_token_account_balance(self, *a, **k):
+            return types.SimpleNamespace(value=types.SimpleNamespace(ui_amount=1.0))
+
+        async def send_raw_transaction(self, *a, **k):
+            send_called["sent"] = True
+
+        async def close(self):
+            pass
+
+    class DummyJupiter:
+        def __init__(self, *a, **k):
+            self.calls = 0
+
+        async def quote(self, *a, **k):
+            self.calls += 1
+            amount = 1000 if self.calls == 1 else 1300
+            return types.SimpleNamespace(output_amount=amount)
+
+        async def swap(self, *a, **k):
+            return base64.b64encode(b"tx").decode()
+
+    class DummyKeypair:
+        @staticmethod
+        def from_bytes(b):
+            return DummyKeypair()
+
+        def pubkey(self):
+            return "pk"
+
+    class DummyTx:
+        def __bytes__(self):
+            return b"tx"
+
+    monkeypatch.setattr(exit_monitor, "AsyncClient", DummyClient)
+    monkeypatch.setattr(exit_monitor, "Jupiter", DummyJupiter)
+    monkeypatch.setattr(exit_monitor, "Keypair", DummyKeypair)
+    monkeypatch.setattr(exit_monitor.VersionedTransaction, "from_bytes", lambda b: DummyTx())
+    monkeypatch.setattr(exit_monitor.PublicKey, "from_string", lambda s: s)
+    monkeypatch.setattr(exit_monitor.asyncio, "sleep", lambda *a, **k: asyncio.sleep(0))
+
+    await exit_monitor.monitor_coin("dummy_mint")
+
+    assert send_called["sent"] is True
+
