@@ -1,0 +1,265 @@
+Identity:
+You are a senior blockchain engineer and DevOps specialist with deep expertise in Solana, QuickNode's Métis add-on, Jupiter DEX integration, and serverless architectures. Scan the existing codebase and the proposed new scripts and figure out how to best integrate them. Take your time and research online to verify APIs correctly
+
+Goal:
+Generate every Python/JavaScript script needed for our automated trading project:
+1. Self-hosted entry daemon (polling new pools, filtering rugs, liquidity checks, executing buys).
+2. Self-hosted exit daemon (placing take-profit limit orders, monitoring Chainlink price feeds, executing stop-loss sells).
+3. Combined self-hosted script (single Python file doing both entry and exit).
+4. QuickNode Function for entry logic (event-driven via Streams/QuickAlerts, using KV store).
+5. QuickNode Function for exit logic (triggered via QuickAlerts, executing market sells).
+6. Deployment snippets or configuration (environment variables, WebSocket subscription examples).
+
+Process:
+1. Read the context below to understand all required endpoints, checks, and environment variables.
+2. For each of the six components, write a standalone code block with a clear filename comment (e.g., # entry_daemon.py).
+3. Include minimal imports, configuration via environment variables, and inline comments only as needed for clarity.
+4. Ensure the QuickNode Function code references the correct Streams/Alerts triggers and uses the Key-Value Store API.
+5. Provide any necessary package.json or requirements listings for Function deployments.
+
+Return Format:
+Provide each script in its own fenced code block with the respective filename as a top-line comment. Do not include extra explanatory text—only the code blocks and any minimal config files.
+
+Warnings:
+- Do not include any prose or justification—only code and key config.
+- Do not assume any prior files exist; each script must be fully self-contained.
+- Avoid using placeholder text beyond clearly marked <YOUR_*_HERE> environment variables.
+
+Context:
+- QuickNode Métis endpoints: /new-pools, /quote, /swap, /limit-orders/create, /limit-orders/open, /limit-orders/cancel
+- Solana RPC for mint data: getAccountInfo (base64)
+- Chainlink Aggregator AnswerUpdated log topic for stop-loss
+- Typical fee ~0.01%, slippage 0.5%–3%, target net 1%–2%
+- Self-hosted scripts use requests, websocket-client
+- QuickNode Functions support Node.js or Python runtimes with built-in RPC client and KV store
+
+Here's a concise Python script leveraging QuickNode + Métis to place a take-profit limit order and listen for on-chain price updates to trigger a stop-loss market sell.
+
+Setup:
+	1.	Install dependencies:
+
+pip install requests websocket-client
+
+
+	2.	Export the required environment variables in your shell:
+
+export QN="https://andromeda.metis.quiknode.pro/<API_KEY>"
+export WALLET="<YOUR_WALLET_ADDRESS>"
+export INPUT_MINT="<TOKEN_A_MINT>"
+export OUTPUT_MINT="<TOKEN_B_MINT>"
+export AMOUNT="<AMOUNT_IN_SMALLEST_UNITS>"
+export STOP_LOSS="<PRICE_THRESHOLD_DECIMAL>"
+export TAKE_PROFIT="<TARGET_PRICE_DECIMAL>"
+export AGGREGATOR_ADDRESS="<CHAINLINK_AGGREGATOR_CONTRACT>"
+
+import os, json, time, requests
+from websocket import create_connection as c
+
+QN = os.getenv("QN"); W = os.getenv("WALLET")
+IM, OM = os.getenv("INPUT_MINT"), os.getenv("OUTPUT_MINT")
+AM = int(os.getenv("AMOUNT")); SL = int(os.getenv("STOP_LOSS"))
+TP = int(os.getenv("TAKE_PROFIT")); AG = os.getenv("AGGREGATOR_ADDRESS")
+
+# Take-profit via limit order
+requests.post(f"{QN}/limit-orders/create", json={
+    "owner": W, "inputMint": IM, "outputMint": OM,
+    "inAmount": AM, "outAmount": TP,
+    "expiredAt": time.time() + 3600
+})
+
+# Subscribe to Chainlink price feed events
+ws = c(QN.replace("https", "wss"))
+ws.send(json.dumps({
+    "jsonrpc": "2.0", "id": 1, "method": "eth_subscribe",
+    "params": ["logs", {"address": AG, "topics": ["0x7f…"]}]
+}))
+
+# Monitor for stop-loss trigger and execute market sell
+while True:
+    data = json.loads(ws.recv())["params"]["result"]["data"]
+    if int(data, 16) <= SL:
+        requests.post(f"{QN}/swap", json={
+            "owner": W, "inAmount": AM, "inMint": IM, "outMint": OM
+        })
+        break
+
+How it works:
+	•	Take-Profit: Sends a limit-order creation request to QuickNode's Metis add-on.
+	•	Stop-Loss: Opens a WebSocket to listen for AnswerUpdated events from the Chainlink aggregator. When the on-chain price ≤ your STOP_LOSS, it sends a market sell via the Metis swap endpoint.
+
+This zero-daemon, serverless-style approach runs entirely in one script using QuickNode's managed services.
+
+Before diving into the script, here's the high-level approach:
+	1.	Discover all newly listed SPL tokens by polling the Metis /new-pools endpoint to catch every fresh liquidity pool on Solana  .
+	2.	Filter out rugs and unsellable tokens by fetching each token's mint account via Solana's getAccountInfo RPC and decoding the Borsh-serialized mint data to check that freezeAuthorityOption === 0 (i.e., no freeze authority)   .
+	3.	Verify sufficient liquidity and slippage safety by requesting a small test quote on Jupiter's /quote endpoint (with slippage checks) and ensuring the returned outAmount exceeds a minimum threshold, thus avoiding ultra-low–liquidity tokens that would suffer crippling slippage    .
+	4.	Execute the buy immediately via Metis's /swap endpoint when a token passes all checks, and log the transaction signature for auditability   .
+
+⸻
+
+1. Discovering New Pools
+
+Use the Metis add-on's /new-pools endpoint to fetch every recently created liquidity pool (and its associated mints). This ensures you catch fringe listings, not just the top markets  .
+
+GET /new-pools
+Response → { pools: [{ inputMint, outputMint, … }, …] }
+
+
+⸻
+
+2. Filtering Out Rugs & Unsellable Tokens
+
+2.1 Fetch Mint Account Data
+
+Call Solana's getAccountInfo RPC on each outputMint to retrieve the raw, base64–encoded account data:
+
+POST { 
+  "jsonrpc":"2.0","id":1,
+  "method":"getAccountInfo",
+  "params":[
+    "<MINT_ADDRESS>",
+    { "encoding":"base64" }
+  ]
+}
+
+This returns the Borsh-serialized RawMint struct, which includes freezeAuthorityOption (0 or 1) and freezeAuthority   .
+
+2.2 Decode & Check Freeze Authority
+
+Deserialize the first 82 bytes of the returned data and inspect byte 45 (freezeAuthorityOption). If it equals 1, skip the token—this mint can later be frozen, preventing sells  .
+
+⸻
+
+3. Liquidity & Slippage Screening
+
+3.1 Request a Quote
+
+Hit Metis's /quote endpoint with a small swap amount (e.g., 1 SOL in lamports) and an acceptable slippage tolerance. The response includes:
+	•	outAmount: amount you'd receive
+	•	slippageBps: slippage basis points used
+	•	priceImpactPct: expected impact
+
+GET /quote?inputMint=<WSOL>&outputMint=<TOKEN>&amount=1000000000&slippageBps=100
+
+3.2 Enforce Minimum Output
+
+Only proceed if outAmount > MIN_LIQUIDITY_THRESHOLD. This protects against pools so shallow they'd crash your position   .
+
+⸻
+
+4. Execution & Logging
+
+Once a token passes all filters, immediately submit the /swap request to buy. Capture and store the transaction signature along with the mint address and timestamp for later review   .
+
+POST /swap
+{
+  "owner": "<WALLET>",
+  "tx": <SIGNED_SWAP_TRANSACTION>
+}
+
+
+⸻
+
+5. Shortest Possible Python Script
+
+import os, time, json, base64, requests
+
+QN, W = os.getenv("QN"), os.getenv("WALLET")
+MIN_LIQ = int(os.getenv("MIN_LIQ", "100000"))
+SLIPPAGE = int(os.getenv("SLIPPAGE_BPS", "100"))
+seen = set()
+
+while True:
+    for p in requests.get(f"{QN}/new-pools").json()["pools"]:
+        m = p["outputMint"]
+        if m in seen: continue
+        seen.add(m)
+        # Fetch mint data
+        res = requests.post(QN, json={
+            "jsonrpc":"2.0","id":1,
+            "method":"getAccountInfo",
+            "params":[m,{"encoding":"base64"}]
+        }).json()["result"]["value"]["data"][0]
+        data = base64.b64decode(res)
+        # Skip if freezeAuthorityOption == 1
+        if data[45] == 1: continue
+        # Test quote for liquidity & slippage
+        q = requests.get(f"{QN}/quote", params={
+            "inputMint":p["inputMint"],
+            "outputMint":m,
+            "amount":1_000_000_000,
+            "slippageBps":SLIPPAGE
+        }).json()["data"]
+        if int(q["outAmount"]) < MIN_LIQ: continue
+        # Execute buy
+        s = requests.post(f"{QN}/swap", json={
+            "owner": W,
+            "tx": q["swapTransaction"]
+        }).json()
+        print(m, s.get("data", {}).get("txSignature"))
+    time.sleep(30)
+
+Environment Variables Required:
+
+export QN="https://andromeda.metis.quiknode.pro/<API_KEY>"
+export WALLET="<YOUR_PUBLIC_KEY>"
+export MIN_LIQ="100000"           # minimum outAmount threshold
+export SLIPPAGE_BPS="100"         # slippage tolerance in basis points
+
+This script continuously polls for new pools, filters out rugs and unsellable tokens, checks liquidity/slippage, executes the buy, and logs the transaction ID—fully on QuickNode + Metis, with zero self-hosted daemons.
+
+You can lift both your "entry" and "exit" daemons entirely into QuickNode's serverless ecosystem by combining Streams, QuickAlerts, Functions, and the Key-Value Store—no self-hosted code required. Here's how each piece fits together:
+
+⸻
+
+1. Event-Driven Entry Logic
+
+a. Stream or Alert on New-Pool Events
+	•	QuickNode Streams can watch Solana logs in real-time.
+	•	Filter for your DEX's "PoolCreated" event (e.g. Jupiter/Raydium factory logs).
+	•	Pipe that stream directly into a QuickNode Function  .
+
+Alternatively, if you prefer an alert-based trigger, use QuickAlerts to detect the same logs and webhook into your Function.
+
+b. Stateless Function with On-Chain Checks
+
+Inside the Function (Node.js or Python runtime):
+	1.	Decode the event payload to extract inputMint/outputMint.
+	2.	Check freezeAuthorityOption via an on-chain RPC call (getAccountInfo) to skip rugs .
+	3.	Fetch a quote (/quote) and enforce a minimum outAmount for liquidity safety   .
+	4.	Execute the swap (/swap) when it passes all filters.
+	5.	Place your take-profit via /limit-orders/create.
+
+c. Persist "Seen" State in Key-Value Store
+	•	Use the Functions Key-Value Store to record which mints you've already processed, preventing re-buys on redeploy or retries  .
+
+⸻
+
+2. Event-Driven Exit Logic
+
+a. Alert on Price Feed Updates
+	•	Create a QuickAlerts rule watching your Chainlink Aggregator's AnswerUpdated logs (threshold expression).
+	•	Target the same QuickNode Function endpoint.
+
+b. In-Function Stop-Loss Execution
+
+When invoked:
+	1.	Parse the new price from the alert payload.
+	2.	Compare against your STOP_LOSS floor from environment vars.
+	3.	Invoke a market sell via /swap if the floor is breached.
+
+Your take-profit limit orders are already on-chain and fill automatically—no further monitoring needed.
+
+⸻
+
+3. Why This Retains Full Functionality
+
+Capability	Self-Host Daemon	QuickNode Serverless
+Log Subscriptions	WebSocket or RPC polling	Streams / QuickAlerts ⟶ Functions   
+On-Chain RPC Calls	HTTP/WebSocket RPC to QuickNode	Native in Functions via built-in RPC client
+State Management	Local seen = set() or database	KV Store within Functions  
+Take-Profit Orders	Metis /limit-orders/create via RPC	Identical API call inside Function
+Stop-Loss Trades	Exit daemon WebSocket + RPC + swap	QuickAlerts trigger ⟶ Function ⟶ swap
+Scaling & Uptime	Your servers/cron	Auto-scaling, globally-distributed Functions (no uptime worry)  
+
+By routing all triggers into QuickNode Functions—and using the Key-Value Store for any required persistence—you eliminate your need to manage any continuously-running daemons, while preserving every check, filter, and on-chain execution step exactly as before. 

@@ -1,0 +1,48 @@
+# Candlestick Trading Bot Environment Configuration
+
+# ===== AWS Configuration =====
+export AWS_ACCESS_KEY_ID=""           # Your AWS access key
+export AWS_SECRET_ACCESS_KEY=""       # Your AWS secret key
+export AWS_DEFAULT_REGION="us-west-2" # AWS region for resources
+
+# ===== Database Configuration =====
+export DB_HOST=""                     # Database host address
+export DB_PORT=""                     # Database port
+export DB_USER=""                     # Database username
+export DB_PASSWORD=""                 # Database password
+export DB_NAME=""                     # Database name
+
+# ===== Trading API Configuration =====
+export TRADING_API_KEY=""             # API key for trading platform
+export TRADING_API_SECRET=""          # API secret for trading platform
+export BIRDEYE_API_KEY=""             # API key for BirdEye
+
+# ===== Application Configuration =====
+export NODE_ENV="development"         # Environment (development/production)
+export SECRET_KEY=""                  # Secret key for app encryption
+export DEBUG="true"                   # Enable debug mode
+
+# ===== Terraform Configuration =====
+export TF_VAR_environment="dev"       # Terraform environment variable
+export TF_VAR_project_name="candlestick-bot" # Project name for Terraform
+
+# Candlestick Trading Platform Configuration
+# Wallet Configuration
+export WALLET_ADDRESS="2C4X2sFhnb212uC1W2GdfKL4uCRkdKhXyfxktg3T3vmA"  # Your Solana wallet public address
+export WALLET_PRIVATE_KEY="s16qDNE3GMrsHtH3mmFW12GPtd6oiVJmyAkAYPLMp85H1iGwwtjWKw9eLB4746j2bYJvhADdzEQgFmcV5tH3E4t"  # Your Solana wallet private key (keep this secure!)
+
+# Jupiter API Configuration
+export JUPITER_API_KEY=""  # Your Jupiter API key
+export JUPITER_API_BASE_URL="https://quote-api.jup.ag/v6"  # Jupiter API endpoint
+
+# QuickNode Configuration
+export QUICKNODE_ENDPOINT="https://proud-palpable-borough.solana-devnet.quiknode.pro/cd082a9869a70d70acccd33b8cc5aa96cb824df4/"  # Your QuickNode endpoint URL
+
+# Solana Network Configuration
+export SOLANA_CLUSTER="mainnet-beta"  # Options: mainnet-beta, devnet, testnet
+
+# Trading Parameters
+export MIN_LIQUIDITY_THRESHOLD="25000"  # Minimum liquidity threshold in USD
+export MIN_24H_TRADING_VOLUME_THRESHOLD="400000"  # Minimum 24h trading volume in USD
+export MAX_TOKEN_AGE="82800"  # Maximum token age in seconds (23 hours)
+export MONITORING_INTERVAL="3600"  # Monitoring interval in seconds (1 hour) 
