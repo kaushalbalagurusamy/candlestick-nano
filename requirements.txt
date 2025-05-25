@@ -5,4 +5,7 @@ base58
 solana
 solders
 jupiter-python-sdk
-pytest-xprocess 
+pytest-xprocess
+requests
+websocket-client
+python-dateutil 

@@ -1,6 +1,6 @@
 import os, json, asyncio, aiohttp, base64, base58
 from datetime import datetime
-from solana.publickey import PublicKey
+from solders.pubkey import Pubkey as PublicKey
 from solana.rpc.async_api import AsyncClient
 from solana.rpc.types import TokenAccountOpts, TxOpts
 from spl.token.async_client import AsyncToken

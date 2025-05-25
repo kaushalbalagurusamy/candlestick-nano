@@ -1,0 +1,31 @@
+[Unit]
+Description=Candlestick Nano Trading Bot
+After=network.target
+
+[Service]
+Type=simple
+User=trading
+Group=trading
+WorkingDirectory=/opt/candlestick-nano
+EnvironmentFile=/opt/candlestick-nano/.env
+
+# Python virtual environment
+Environment="PATH=/opt/candlestick-nano/.venv/bin"
+
+# Run the combined daemon for MVP
+ExecStart=/opt/candlestick-nano/.venv/bin/python /opt/candlestick-nano/combined_daemon.py
+
+# Restart on failure
+Restart=on-failure
+RestartSec=30
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target 

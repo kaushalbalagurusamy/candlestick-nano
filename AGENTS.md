@@ -1,95 +1,170 @@
 # AGENTS.md
 
-This guide is intended for AI code assistants (e.g., Devin, Codex) to navigate and interact autonomously with the Candlestick Nano repository. It focuses on code structure, entry points, automated tasks, and testing hooks—minimizing redundancy with the human-oriented README.
+This guide is intended for AI code assistants (e.g., Claude, Devin, Codex) to navigate and interact autonomously with the Candlestick Nano trading bot. It focuses on the new architecture with QuickNode Métis integration.
 
-## 1. Project Layout
+## 1. Project Architecture
 
-Root directory files:
+The project now supports two deployment modes:
 
-- `.envrc.sample` — environment variable template
-- `buy.py` — batch-buy script using Jupiter SDK
-- `exit_monitor.py` — token monitoring and auto-swap daemon
-- `extractor.py` — candidate token extraction pipeline
-- `airdrop.py` — request devnet/testnet SOL for tests
-- `tokens.json` — input for `buy.py`
-- `candidates.json` — output of extractor
-- `requirements.txt` and `requirements-dev.txt` — runtime and dev deps
-- `pyproject.toml` — Ruff lint config
-- `.github/workflows/ci.yml` — CI: lint, test, type-check, security scan
+### Self-Hosted Daemons
+- `entry_daemon.py` — Monitors new pools and executes buys
+- `exit_daemon.py` — Manages positions and stop-loss
+- `combined_daemon.py` — Runs both entry and exit logic
 
-Key directory:
+### Serverless Functions
+- `quicknode_functions/entry_function.js` — Event-driven entry logic
+- `quicknode_functions/exit_function.js` — Alert-driven exit logic
 
-- `tests/` — pytest suites:
-  - `test_env.py` — environment & API connectivity tests
-  - `test_end_to_end_devnet.py` — Devnet end-to-end workflow
+### Legacy Scripts (still functional)
+- `buy.py` — Manual batch-buy using Jupiter SDK
+- `exit_monitor.py` — Original exit monitoring daemon
+- `extractor.py` — Candidate token extraction pipeline
 
 ## 2. Environment & Configuration
 
-- Source `.envrc` (copied from `.envrc.sample`) to load:
-  - `WALLET_PRIVATE_KEY`, `SOLANA_CLUSTER`, `QUICKNODE_ENDPOINT`, `JUPITER_API_BASE_URL`, etc.
-- Agents can inspect `.envrc.sample` for all required variables.
+Key environment variables:
+- `QUICKNODE_ENDPOINT` — QuickNode Métis API endpoint
+- `WALLET_ADDRESS` — Public key for trading
+- `WALLET_PRIVATE_KEY` — Private key (base58)
+- `MIN_LIQUIDITY_THRESHOLD` — Minimum token liquidity
+- `MAX_TOKEN_AGE` — Maximum age in seconds
+- `STOP_LOSS_PERCENTAGE` — Stop-loss trigger %
+- `TAKE_PROFIT_PERCENTAGE` — Take-profit target %
 
 ## 3. Entry Points & APIs
 
-### buy.py
+### entry_daemon.py
 
-- `async def main()` — reads `tokens.json`, performs swaps via Jupiter SDK.
-  - Invocation: `await buy.main()` when imported; or `python buy.py` as CLI.
+Main functions:
+- `fetch_new_pools()` — Get new pools from Métis `/new-pools`
+- `check_freeze_authority(client, mint)` — Rug pull detection
+- `get_liquidity_quote(mint)` — Check liquidity via `/quote`
+- `execute_swap(quote_data)` — Execute buy via `/swap`
+- `create_limit_order(mint, amount)` — Create take-profit order
 
-### exit_monitor.py
+Entry: `python entry_daemon.py` or `await main()`
 
-- `async def monitor_coin(mint: str)` — watch and auto-swap a single token.
-- `async def main()` — spawns one `monitor_coin` task per mint in `WATCH_MINTS`.
-  - Invocation: `await exit_monitor.main()` when imported; or `python exit_monitor.py` as CLI.
+### exit_daemon.py
 
-### extractor.py
+Main functions:
+- `get_open_limit_orders()` — Fetch open orders
+- `cancel_limit_order(order_pubkey)` — Cancel an order
+- `execute_market_sell(mint, amount)` — Emergency exit
+- `monitor_price_feed()` — WebSocket price monitoring
 
-- `async def main()` — orchestration: fetch tokens, evaluate via extractors, write `candidates.json`.
-- Helper functions:
-  - `jupiter_extractor(session, mint)`
-  - `dexscreener_extractor(session, mint)`
-  - `onchain_extractor(client, mint)`
-  - `evaluate_token(mint, client, session)`
+Entry: `python exit_daemon.py` or `await main()`
 
-## 4. Automated Workflows
+### combined_daemon.py
 
-### CI Pipeline
+Main class: `TradingBot`
+- `process_new_pools()` — Entry logic
+- `check_stop_loss_conditions()` — Exit logic
+- `update_positions()` — Sync state
 
-Defined in `.github/workflows/ci.yml`:
+Entry: `python combined_daemon.py` or `await main()`
 
-1. **lint**: Ruff + Flake8 checks
-2. **test**: `pytest` (async tests via pytest-asyncio)
-3. **pylint**: deep static analysis
-4. **type-check**: MyPy
-5. **security**: Bandit scan
+### QuickNode Functions
 
-Agents can trigger or monitor this workflow via GitHub Actions API.
+- `entry_function.main(params)` — Handles new pool events
+- `exit_function.main(params)` — Handles price alerts
+
+## 4. Key APIs Used
+
+### QuickNode Métis Endpoints
+- `GET /new-pools` — Fetch recent liquidity pools
+- `GET /quote` — Get swap quotes with slippage
+- `POST /swap` — Execute token swaps
+- `POST /limit-orders/create` — Create limit orders
+- `GET /limit-orders/open` — List open orders
+- `POST /limit-orders/cancel` — Cancel orders
+
+### Solana RPC
+- `getAccountInfo` — Fetch mint data
+- `sendRawTransaction` — Submit transactions
 
 ## 5. Testing Hooks
 
-- **test_env.py**: validates env vars, RPC connectivity, endpoint health, on-chain functions.
-- **test_end_to_end_devnet.py**: Devnet E2E:
-  1. Fetch first 10 mints
-  2. Serialize to `devnet_tokens.json`
-  3. Call `buy.main()` asynchronously
-  4. Spawn `monitor_coin` tasks, verify liveness, cancel cleanly
-  5. Emit logs to `devnet_test_results/YYYYMMDD_HHMMSS.txt`
+- **test_env.py**: Validates environment and API connectivity
+- **test_end_to_end_devnet.py**: Full workflow test
 
-Agents should run with `pytest tests/test_end_to_end_devnet.py` for full workflow (skip unless `SOLANA_CLUSTER=devnet`).
+Run with: `pytest tests/`
 
 ## 6. Agent Integration Tips
 
-- **Import paths**: Add project root to `sys.path` to import modules (`buy`, `exit_monitor`, `extractor`).
-- **Async runtime**: Use `pytest.mark.asyncio` or an `asyncio` event loop for direct invocation.
-- **Logging**: Tests use Python `logging` for structured output.
-- **Cleanup**: Restore or remove side-effects (e.g., `tokens.json`, background tasks) after automated runs.
+### Async Handling
+All main functions are async. Use:
+```python
+import asyncio
+asyncio.run(main())
+```
 
-## 7. Code Size Guidance
+### State Management
+- Self-hosted: In-memory sets/dicts
+- Serverless: QuickNode KV store
 
-To keep the repository easy to navigate for AI agents, keep individual code files
-under **200 lines** whenever possible. Break large modules into smaller ones if a
-file approaches this limit.
+### Error Handling
+- Wrap API calls in try/except
+- Log errors but continue monitoring
+- Implement exponential backoff for rate limits
+
+### Performance Optimization
+- Batch RPC calls when possible
+- Use connection pooling
+- Cache token metadata
+
+## 7. Code Modifications
+
+When modifying:
+1. Keep files under 200 lines
+2. Maintain async patterns
+3. Update both self-hosted and serverless versions
+4. Add environment variables to `.envrc.sample`
+5. Update documentation
+
+## 8. Deployment
+
+### Self-Hosted
+```bash
+# Development
+python combined_daemon.py
+
+# Production
+systemctl start trading-bot
+```
+
+### Serverless
+```bash
+cd quicknode_functions
+qn function deploy entry_function.js
+qn function deploy exit_function.js
+```
+
+## 9. Monitoring
+
+Key metrics to track:
+- New pools processed/hour
+- Buy success rate
+- Position P&L
+- API rate limit usage
+- Transaction costs
+
+## 10. Common Tasks
+
+### Add New Filter
+1. Modify `process_new_token()` in entry_daemon.py
+2. Update `checkTokenSafety()` in entry_function.js
+3. Add config to environment variables
+
+### Change Risk Parameters
+1. Update `.envrc`
+2. Restart daemons or redeploy functions
+3. Existing positions use old parameters
+
+### Debug Failed Transaction
+1. Check logs for transaction signature
+2. Look up on Solana Explorer
+3. Common issues: slippage, insufficient funds
 
 ---
 
-Agents can reference this file for module entry points, testing hooks, and CI integration. For human instructions, refer to `README.md`. 
+Agents should reference this file for understanding the new architecture and integration points. The codebase now emphasizes real-time monitoring and automated execution over batch processing. 

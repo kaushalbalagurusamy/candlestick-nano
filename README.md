@@ -1,10 +1,32 @@
 # Candlestick Nano
 
-A Solana-based trading toolkit that: 
+A high-performance Solana trading bot that leverages QuickNode's Métis API for automated token trading with advanced filtering and risk management.
 
-- Monitors token prices and liquidity using the Jupiter SDK 
-- Executes SOL↔token swaps via QuickNode & Jupiter 
-- Extracts and filters candidate tokens using Jupiter/Metis, DexScreener, and BirdEye APIs
+## Features
+
+- **Real-time Pool Monitoring**: Tracks new liquidity pools via QuickNode's `/new-pools` endpoint
+- **Advanced Token Filtering**: 
+  - Freeze authority detection (rug pull protection)
+  - Liquidity threshold checks
+  - Token age verification
+- **Automated Trading**:
+  - Entry: Automatic buys for qualifying tokens
+  - Exit: Take-profit limit orders via Jupiter
+  - Stop-loss monitoring with Chainlink integration
+- **Dual Deployment Options**:
+  - Self-hosted daemons for full control
+  - Serverless QuickNode Functions for zero maintenance
+
+## Architecture
+
+The bot consists of two main components:
+
+1. **Entry System**: Monitors new pools, filters tokens, executes buys
+2. **Exit System**: Manages positions with limit orders and stop-loss
+
+Both can run as:
+- Self-hosted Python daemons
+- Serverless QuickNode Functions
 
 ---
 
@@ -12,7 +34,8 @@ A Solana-based trading toolkit that:
 
 - Python 3.9+
 - [direnv](https://direnv.net/) (optional, for automatic env loading)
-- `pip` or equivalent
+- QuickNode account with Métis API access
+- Solana wallet with funds
 
 ## Installation
 
@@ -42,13 +65,16 @@ Copy `.envrc.sample` to `.envrc` and update the placeholders with your credentia
 
 ```bash
 export WALLET_PRIVATE_KEY="<your_base58_private_key>"
-export SOLANA_CLUSTER="devnet"          # one of devnet | testnet | mainnet-beta
-export QUICKNODE_ENDPOINT="<your_rpc_url>"
-export JUPITER_API_BASE_URL="<your_jupiter_api_base_url>"
-export BIRDEYE_API_KEY="<your_birdeye_api_key>"
-# Optional overrides:
-# export AMOUNT_SOL=1.0               # SOL amount to swap per token in buy.py
-# export AMOUNT_SOL_DEFAULT=...      # etc.
+export WALLET_ADDRESS="<your_wallet_address>"
+export SOLANA_CLUSTER="mainnet-beta"
+export QUICKNODE_ENDPOINT="<your_métis_endpoint>"
+
+# Trading Parameters
+export MIN_LIQUIDITY_THRESHOLD="100000"
+export MAX_TOKEN_AGE="82800"
+export STOP_LOSS_PERCENTAGE="10"
+export TAKE_PROFIT_PERCENTAGE="20"
+export MONITORING_INTERVAL="30"
 ```
 
 Then allow the `.envrc`:
@@ -57,32 +83,70 @@ Then allow the `.envrc`:
 direnv allow
 ```
 
-## Usage
+## Quick Start (MVP)
 
-
-### 1. Extract Candidates
-
-```bash
-python extractor.py
-```
-
-Fetches tradable mints from Jupiter/Metis, evaluates volume, liquidity, security, filters by criteria, and writes `candidates.json`.
-
-### 2. Buy Tokens
+The fastest way to get started:
 
 ```bash
-python buy.py
+./quick_start_mvp.py
 ```
 
-Reads `tokens.json` and swaps a fixed SOL amount into each token.
+This interactive script will help you choose the best deployment option.
 
-### 3. Exit Monitor
+### Option 1: Combined Daemon (Recommended for MVP)
+
+The simplest way to run the bot:
 
 ```bash
-python exit_monitor.py
+python combined_daemon.py
 ```
 
-Spawns watchers for each mint in your `WATCH_MINTS` env var and executes swaps when thresholds are met.
+This single process handles both entry (finding new tokens) and exit (stop-loss/take-profit) logic.
+
+**Benefits:**
+- ✅ Single process to manage
+- ✅ Lowest operational cost
+- ✅ Easy to monitor and debug
+- ✅ All features included
+
+### Option 2: Serverless (QuickNode Functions)
+
+For production with zero infrastructure:
+
+See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed serverless setup.
+
+**Benefits:**
+- ✅ No servers to manage
+- ✅ Pay only when trades execute
+- ✅ Auto-scaling
+- ✅ Built-in monitoring
+
+### Option 3: Manual Trading (Legacy)
+
+For manual token discovery and trading:
+
+- `extractor.py` - Find candidate tokens
+- `buy.py` - Execute manual buys
+- `exit_monitor.py` - Monitor positions
+
+## New Features
+
+### QuickNode Métis Integration
+- `/new-pools` - Real-time pool discovery
+- `/quote` - Liquidity and slippage checks
+- `/swap` - Transaction execution
+- `/limit-orders/*` - Take-profit automation
+
+### Advanced Filtering
+- Freeze authority detection
+- Minimum liquidity requirements
+- Token age limits
+- Slippage protection
+
+### Risk Management
+- Automated take-profit orders
+- Stop-loss monitoring
+- Position tracking via KV store
 
 ## Code Style
 
@@ -97,50 +161,47 @@ This project includes async pytest tests for environment configuration, RPC & AP
 pytest
 ```
 
-Ensure `pytest-asyncio` and other dependencies are installed. For devnet tests
-you may need SOL; use `python airdrop.py` to request an airdrop first.
-
-## End-to-End Devnet Workflow
-
-For a complete Devnet run (buys and watchers), use the dedicated end-to-end test:
-
-```bash
-SOLANA_CLUSTER=devnet pytest tests/test_end_to_end_devnet.py
-```
-
-This will:
-- Fetch the top 10 tokens from Jupiter/Metis
-- Execute buys via `buy.py`
-- Spawn watcher daemons for each token (runs for a short period then cancels)
-- Generate logs in `devnet_test_results/YYYYMMDD_HHMMSS.txt`
-
-## Agent Reference
-
-An AI agent guide (`AGENTS.md`) is provided for automated integrations, outlining module entry points, CI hooks, and testing workflows.
-
 ## Project Structure
 
 ```
 .
-├── .envrc              # direnv configuration to load environment vars
-├── AGENTS.md           # agent-specific guide for AI assistants
-├── api_contract.yaml   # OpenAPI spec for HTTP endpoints
-├── buy.py              # script to batch-buy tokens
-├── extractor.py        # pipeline to extract/filter candidate tokens
-├── exit_monitor.py     # daemon to monitor and auto-swap
-├── tokens.json         # input list of tokens for buy.py
-├── candidates.json     # output of extractor.py
-├── requirements.txt    # Python dependencies
-├── requirements-dev.txt# development dependencies
-├── pyproject.toml      # Ruff lint configuration
-├── pytest.ini          # pytest configuration
-├── .github/
-│   └── workflows/
-│       └── ci.yml      # GitHub Actions CI pipeline
-└── tests/
-    ├── test_env.py
-    └── test_end_to_end_devnet.py
+├── entry_daemon.py          # Self-hosted entry bot
+├── exit_daemon.py           # Self-hosted exit bot
+├── combined_daemon.py       # Combined entry+exit daemon
+├── quicknode_functions/     # Serverless functions
+│   ├── entry_function.js    # Entry logic for QuickNode
+│   ├── exit_function.js     # Exit logic for QuickNode
+│   └── package.json         # Node.js dependencies
+├── DEPLOYMENT_GUIDE.md      # Deployment instructions
+├── .envrc                   # Environment configuration
+├── buy.py                   # Legacy manual buy script
+├── extractor.py             # Legacy candidate extractor
+├── exit_monitor.py          # Legacy exit monitor
+├── requirements.txt         # Python dependencies
+└── tests/                   # Test suite
 ```
+
+## Safety & Disclaimers
+
+⚠️ **WARNING**: This is experimental software for educational purposes. 
+
+- Always test on devnet first
+- Never risk more than you can afford to lose
+- Cryptocurrency trading carries significant risk
+- Past performance doesn't guarantee future results
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Keep files under 200 lines
+4. Add tests for new features
+5. Submit a pull request
+
+## Support
+
+- QuickNode Discord: [discord.gg/quicknode](https://discord.gg/quicknode)
+- GitHub Issues: [github.com/kaushalbalagurusamy/candlestick-nano/issues](https://github.com/kaushalbalagurusamy/candlestick-nano/issues)
 
 ---
 

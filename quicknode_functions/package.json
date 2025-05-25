@@ -1,0 +1,16 @@
+{
+  "name": "quicknode-trading-functions",
+  "version": "1.0.0",
+  "description": "QuickNode Functions for automated Solana trading",
+  "main": "entry_function.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "@solana/web3.js": "^1.89.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+} 
