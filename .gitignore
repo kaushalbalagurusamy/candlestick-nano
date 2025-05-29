@@ -57,4 +57,35 @@ candidates.json
 tokens.json
 
 # GitHub Actions
-# Workflow files are part of source, do not ignore 
+# Workflow files are part of source, do not ignore
+
+# Terraform
+infra/.terraform/
+infra/terraform.tfstate*
+infra/tfplan*
+infra/*.zip
+
+# Docker
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+*.pid
+
+# Environment
+.env
+.envrc.backup
+
+# Cache
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/ 
