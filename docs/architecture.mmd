@@ -1,0 +1,10 @@
+flowchart TD
+  subgraph Auth
+    A1[Cognito User Pool] --> A2[Cognito Client]
+    A1 --> DDB[(DynamoDB users)]
+  end
+  S3[(candlestick-dev S3)] --> CF[CloudFront]
+  Lambda[solExtractor] --> S3
+  ECR --> ECS1[buy-monitor] & ECS2[exit-monitor]
+  ECS1 & ECS2 -->|logs| CW[CloudWatch]
+  EC2[t2.micro spot] --> S3 

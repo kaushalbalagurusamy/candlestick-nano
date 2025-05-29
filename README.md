@@ -28,6 +28,27 @@ Both can run as:
 - Self-hosted Python daemons
 - Serverless QuickNode Functions
 
+### AWS Infrastructure
+
+View the [AWS Architecture Diagram](docs/architecture.mmd) for a visual representation of the infrastructure.
+
+**✅ Deployed Infrastructure**:
+- **CloudFront CDN**: https://d16t0at6xusy1j.cloudfront.net
+- **Region**: us-west-2
+- **Cost**: ~$0.40-$0.80/month (Free Tier eligible)
+
+Key AWS services used (all Free Tier eligible):
+- **S3**: Static content and data storage
+- **CloudFront**: CDN for web interface
+- **Cognito**: User authentication
+- **DynamoDB**: User data storage
+- **Lambda**: Solana data extraction
+- **ECS Fargate**: Trading bot containers
+- **EC2 Spot**: Cost-effective compute
+- **Budget Alerts**: Cost monitoring
+
+📋 **Deployment Details**: See [infra/DEPLOYMENT_SUMMARY.md](infra/DEPLOYMENT_SUMMARY.md)
+
 ---
 
 ## Prerequisites

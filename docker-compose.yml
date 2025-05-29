@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  buy-monitor:
+    build: .
+    container_name: candlestick-buy-monitor
+    command: ["python", "entry_daemon.py"]
+    environment:
+      - AWS_REGION=us-west-2
+      - SERVICE_NAME=buy-monitor
+    env_file:
+      - .envrc
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "print('healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  exit-monitor:
+    build: .
+    container_name: candlestick-exit-monitor
+    command: ["python", "exit_daemon.py"]
+    environment:
+      - AWS_REGION=us-west-2
+      - SERVICE_NAME=exit-monitor
+    env_file:
+      - .envrc
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "print('healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  combined-daemon:
+    build: .
+    container_name: candlestick-combined
+    command: ["python", "combined_daemon.py"]
+    environment:
+      - AWS_REGION=us-west-2
+      - SERVICE_NAME=combined-daemon
+    env_file:
+      - .envrc
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "print('healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3 

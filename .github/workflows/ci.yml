@@ -77,3 +77,23 @@ jobs:
         run: pip install bandit
       - name: Run Bandit
         run: bandit -r . 
+
+  terraform_deploy:
+    name: Terraform Deploy (us-west-2)
+    needs: security
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: Terraform Init
+        run: terraform -chdir=infra init
+      - name: Terraform Plan
+        run: terraform -chdir=infra plan -out=tfplan
+      - name: Terraform Apply
+        run: terraform -chdir=infra apply -auto-approve tfplan 
