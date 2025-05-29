@@ -58,6 +58,53 @@ Key AWS services used (all Free Tier eligible):
 - QuickNode account with Métis API access
 - Solana wallet with funds
 
+## Directory Structure
+
+The project follows a clean, organized structure:
+
+```
+candlestick-nano/
+├── src/                    # Core application code
+│   ├── combined_daemon.py  # All-in-one trading bot
+│   ├── entry_daemon.py     # Entry monitoring daemon
+│   ├── exit_daemon.py      # Exit monitoring daemon
+│   ├── exit_monitor.py     # Legacy exit monitoring
+│   ├── exit_utils.py       # Exit strategy utilities
+│   ├── extractor.py        # Data extraction utilities
+│   ├── trading_bot_core.py # Core trading logic
+│   ├── buy.py             # Manual buy functionality
+│   └── quick_start_mvp.py  # Quick start MVP script
+├── config/                 # Configuration files
+│   ├── .envrc              # Environment variables
+│   ├── .envrc.sample       # Environment template
+│   ├── api_contract.yaml   # API contract definitions
+│   ├── tokens.json         # Token configurations
+│   └── faucet_state.json   # Airdrop state tracking
+├── scripts/                # Utility scripts
+│   ├── setup_production.sh # Production setup
+│   ├── setup_auto_airdrop.sh # Airdrop setup
+│   ├── auto_airdrop.sh     # Background airdrop runner
+│   ├── cursor_start.sh     # Development helper
+│   └── fix_cursor_shell.sh # Shell fix utility
+├── legacy/                 # Legacy components
+│   ├── airdrop.py          # SOL airdrop collector
+│   └── airdrop_status.py   # Airdrop status checker
+├── logs/                   # Log files
+│   ├── airdrop.log         # Airdrop activity logs
+│   └── airdrop.pid         # Process ID files
+├── systemd/                # System service files
+│   ├── candlestick-bot.service  # Main bot service
+│   └── airdrop-auto.service     # Airdrop service
+├── tests/                  # Test suite
+├── docs/                   # Documentation
+├── infra/                  # Infrastructure (Terraform)
+├── quicknode_functions/    # Serverless functions
+├── requirements.txt        # Python dependencies
+├── docker-compose.yml      # Container orchestration
+├── Dockerfile             # Container definition
+└── README.md              # This file
+```
+
 ## Installation
 
 1. Clone the repository:
@@ -82,7 +129,14 @@ Key AWS services used (all Free Tier eligible):
 
 ## Environment Variables
 
-Copy `.envrc.sample` to `.envrc` and update the placeholders with your credentials:
+Copy `config/.envrc.sample` to `config/.envrc` and update the placeholders with your credentials:
+
+```bash
+cp config/.envrc.sample config/.envrc
+# Edit config/.envrc with your credentials
+```
+
+Example `config/.envrc`:
 
 ```bash
 export WALLET_PRIVATE_KEY="<your_base58_private_key>"
@@ -101,7 +155,7 @@ export MONITORING_INTERVAL="30"
 Then allow the `.envrc`:
 
 ```bash
-direnv allow
+direnv allow config/.envrc
 ```
 
 ## Quick Start (MVP)
@@ -109,7 +163,7 @@ direnv allow
 The fastest way to get started:
 
 ```bash
-./quick_start_mvp.py
+python src/quick_start_mvp.py
 ```
 
 This interactive script will help you choose the best deployment option.
@@ -119,7 +173,7 @@ This interactive script will help you choose the best deployment option.
 The simplest way to run the bot:
 
 ```bash
-python combined_daemon.py
+python src/combined_daemon.py
 ```
 
 This single process handles both entry (finding new tokens) and exit (stop-loss/take-profit) logic.
@@ -134,7 +188,7 @@ This single process handles both entry (finding new tokens) and exit (stop-loss/
 
 For production with zero infrastructure:
 
-See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed serverless setup.
+See [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for detailed serverless setup.
 
 **Benefits:**
 - ✅ No servers to manage
@@ -146,9 +200,9 @@ See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed serverless setup.
 
 For manual token discovery and trading:
 
-- `extractor.py` - Find candidate tokens
-- `buy.py` - Execute manual buys
-- `exit_monitor.py` - Monitor positions
+- `src/extractor.py` - Find candidate tokens
+- `src/buy.py` - Execute manual buys
+- `src/exit_monitor.py` - Monitor positions
 
 ## New Features
 
@@ -180,26 +234,6 @@ This project includes async pytest tests for environment configuration, RPC & AP
 
 ```bash
 pytest
-```
-
-## Project Structure
-
-```
-.
-├── entry_daemon.py          # Self-hosted entry bot
-├── exit_daemon.py           # Self-hosted exit bot
-├── combined_daemon.py       # Combined entry+exit daemon
-├── quicknode_functions/     # Serverless functions
-│   ├── entry_function.js    # Entry logic for QuickNode
-│   ├── exit_function.js     # Exit logic for QuickNode
-│   └── package.json         # Node.js dependencies
-├── DEPLOYMENT_GUIDE.md      # Deployment instructions
-├── .envrc                   # Environment configuration
-├── buy.py                   # Legacy manual buy script
-├── extractor.py             # Legacy candidate extractor
-├── exit_monitor.py          # Legacy exit monitor
-├── requirements.txt         # Python dependencies
-└── tests/                   # Test suite
 ```
 
 ## Safety & Disclaimers

@@ -7,20 +7,28 @@ This guide is intended for AI code assistants (e.g., Claude, Devin, Codex) to na
 The project now supports two deployment modes:
 
 ### Self-Hosted Daemons
-- `entry_daemon.py` — Monitors new pools and executes buys
-- `exit_daemon.py` — Manages positions and stop-loss
-- `combined_daemon.py` — Runs both entry and exit logic
+- `src/entry_daemon.py` — Monitors new pools and executes buys
+- `src/exit_daemon.py` — Manages positions and stop-loss
+- `src/combined_daemon.py` — Runs both entry and exit logic
 
 ### Serverless Functions
 - `quicknode_functions/entry_function.js` — Event-driven entry logic
 - `quicknode_functions/exit_function.js` — Alert-driven exit logic
 
 ### Legacy Scripts (still functional)
-- `buy.py` — Manual batch-buy using Jupiter SDK
-- `exit_monitor.py` — Original exit monitoring daemon
-- `extractor.py` — Candidate token extraction pipeline
+- `src/buy.py` — Manual batch-buy using Jupiter SDK
+- `src/exit_monitor.py` — Original exit monitoring daemon
+- `src/extractor.py` — Candidate token extraction pipeline
+- `legacy/airdrop.py` — SOL airdrop collector
 
 ## 2. Environment & Configuration
+
+Configuration is centralized in the `config/` directory:
+- `config/.envrc` — Main environment configuration
+- `config/.envrc.sample` — Template for setup
+- `config/api_contract.yaml` — API contract definitions
+- `config/tokens.json` — Token configurations
+- `config/faucet_state.json` — Airdrop state tracking
 
 Key environment variables:
 - `QUICKNODE_ENDPOINT` — QuickNode Métis API endpoint
@@ -33,7 +41,7 @@ Key environment variables:
 
 ## 3. Entry Points & APIs
 
-### entry_daemon.py
+### src/entry_daemon.py
 
 Main functions:
 - `fetch_new_pools()` — Get new pools from Métis `/new-pools`
@@ -42,9 +50,9 @@ Main functions:
 - `execute_swap(quote_data)` — Execute buy via `/swap`
 - `create_limit_order(mint, amount)` — Create take-profit order
 
-Entry: `python entry_daemon.py` or `await main()`
+Entry: `python src/entry_daemon.py` or `await main()`
 
-### exit_daemon.py
+### src/exit_daemon.py
 
 Main functions:
 - `get_open_limit_orders()` — Fetch open orders
@@ -52,16 +60,16 @@ Main functions:
 - `execute_market_sell(mint, amount)` — Emergency exit
 - `monitor_price_feed()` — WebSocket price monitoring
 
-Entry: `python exit_daemon.py` or `await main()`
+Entry: `python src/exit_daemon.py` or `await main()`
 
-### combined_daemon.py
+### src/combined_daemon.py
 
 Main class: `TradingBot`
 - `process_new_pools()` — Entry logic
 - `check_stop_loss_conditions()` — Exit logic
 - `update_positions()` — Sync state
 
-Entry: `python combined_daemon.py` or `await main()`
+Entry: `python src/combined_daemon.py` or `await main()`
 
 ### QuickNode Functions
 
@@ -118,18 +126,43 @@ When modifying:
 1. Keep files under 200 lines
 2. Maintain async patterns
 3. Update both self-hosted and serverless versions
-4. Add environment variables to `.envrc.sample`
+4. Add environment variables to `config/.envrc.sample`
 5. Update documentation
 
-## 8. Deployment
+## 8. Directory Structure for AI Agents
+
+When navigating the codebase, understand this organization:
+
+```
+candlestick-nano/
+├── src/                    # Core application code - main development focus
+├── config/                 # Configuration files - environment variables
+├── scripts/                # Utility scripts - setup and automation
+├── legacy/                 # Legacy components - backwards compatibility
+├── logs/                   # Log files - debugging and monitoring
+├── systemd/                # System service files - production deployment
+├── tests/                  # Test suite - validation and testing
+├── docs/                   # Documentation - guides and references
+├── infra/                  # Infrastructure - Terraform and AWS
+├── quicknode_functions/    # Serverless functions - QuickNode deployment
+```
+
+**Key paths for AI agents:**
+- **Core logic**: `src/` directory contains all main application code
+- **Configuration**: `config/.envrc` for environment variables
+- **Testing**: `tests/` directory for validation scripts
+- **Documentation**: `docs/` directory for detailed guides
+- **Legacy support**: `legacy/` directory for backwards compatibility
+
+## 9. Deployment
 
 ### Self-Hosted
 ```bash
 # Development
-python combined_daemon.py
+python src/combined_daemon.py
 
-# Production
-systemctl start trading-bot
+# Production (systemd)
+systemctl start candlestick-bot
 ```
 
 ### Serverless
@@ -139,7 +172,15 @@ qn function deploy entry_function.js
 qn function deploy exit_function.js
 ```
 
-## 9. Monitoring
+### Environment Setup
+```bash
+# Copy and configure environment
+cp config/.envrc.sample config/.envrc
+# Edit config/.envrc with your values
+direnv allow config/.envrc
+```
+
+## 10. Monitoring
 
 Key metrics to track:
 - New pools processed/hour
@@ -148,7 +189,7 @@ Key metrics to track:
 - API rate limit usage
 - Transaction costs
 
-## 10. Common Tasks
+## 11. Common Tasks
 
 ### Add New Filter
 1. Modify `process_new_token()` in entry_daemon.py

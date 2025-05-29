@@ -1,0 +1,17 @@
+{
+  "solana_official": {
+    "last_used": "2025-05-28T15:17:26.949800",
+    "amount": 1000000000,
+    "signature": "5BxYCdpZicmkMVRqc8ZfYWcnwAac8s5dC649sZJUqCZpJUWLQLSQCDJnBRktwbDwdsksxQmC5QQjjYvz7136eQwt"
+  },
+  "quicknode": {
+    "last_used": "2025-05-25T11:19:22.243597",
+    "amount": 1000000000,
+    "method": "manual"
+  },
+  "solfaucet": {
+    "last_used": "2025-05-25T11:19:28.333341",
+    "amount": 5000000000,
+    "method": "manual"
+  }
+}

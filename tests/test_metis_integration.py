@@ -9,8 +9,8 @@ from unittest.mock import patch, MagicMock
 # Import our modules
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from entry_daemon import fetch_new_pools, check_freeze_authority
-from exit_daemon import get_open_limit_orders
+from src.entry_daemon import fetch_new_pools, check_freeze_authority
+from src.exit_daemon import get_open_limit_orders
 
 QN = os.getenv("QUICKNODE_ENDPOINT", "https://test-endpoint")
 
@@ -36,7 +36,7 @@ class TestMetisIntegration:
             mock_get.return_value = mock_response
             
             # Test function
-            from entry_daemon import fetch_new_pools
+            from src.entry_daemon import fetch_new_pools
             pools = await fetch_new_pools()
             
             assert len(pools) == 1
@@ -76,7 +76,7 @@ class TestMetisIntegration:
             }
             mock_get.return_value = mock_response
             
-            from entry_daemon import get_liquidity_quote
+            from src.entry_daemon import get_liquidity_quote
             quote = await get_liquidity_quote("TestMint")
             
             assert quote is not None
@@ -116,11 +116,11 @@ class TestMetisIntegration:
         ]
         
         # Check if sample env file has all required vars
-        with open(".envrc.sample", "r") as f:
+        with open("config/.envrc.sample", "r") as f:
             content = f.read()
             
         for var in required_vars:
-            assert f"export {var}=" in content, f"Missing {var} in .envrc.sample"
+            assert f"export {var}=" in content, f"Missing {var} in config/.envrc.sample"
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"]) 

@@ -13,7 +13,7 @@ EnvironmentFile=/opt/candlestick-nano/.env
 Environment="PATH=/opt/candlestick-nano/.venv/bin"
 
 # Run the combined daemon for MVP
-ExecStart=/opt/candlestick-nano/.venv/bin/python /opt/candlestick-nano/combined_daemon.py
+ExecStart=/opt/candlestick-nano/.venv/bin/python /opt/candlestick-nano/src/combined_daemon.py
 
 # Restart on failure
 Restart=on-failure

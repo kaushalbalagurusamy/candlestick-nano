@@ -1,0 +1,31 @@
+[Unit]
+Description=Automated SOL Airdrop Collector
+After=network.target
+
+[Service]
+Type=simple
+User=kaushal
+Group=staff
+WorkingDirectory=/Users/kaushal/Desktop/candlestick-nano
+EnvironmentFile=/Users/kaushal/Desktop/candlestick-nano/config/.envrc
+
+# Python virtual environment
+Environment="PATH=/Users/kaushal/Desktop/candlestick-nano/.venv/bin:/usr/bin:/bin"
+
+# Run the airdrop script in auto mode
+ExecStart=/Users/kaushal/Desktop/candlestick-nano/.venv/bin/python /Users/kaushal/Desktop/candlestick-nano/legacy/airdrop.py --auto
+
+# Restart on failure
+Restart=on-failure
+RestartSec=300
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target 

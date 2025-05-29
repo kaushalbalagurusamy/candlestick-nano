@@ -4,12 +4,12 @@ services:
   buy-monitor:
     build: .
     container_name: candlestick-buy-monitor
-    command: ["python", "entry_daemon.py"]
+    command: ["python", "src/entry_daemon.py"]
     environment:
       - AWS_REGION=us-west-2
       - SERVICE_NAME=buy-monitor
     env_file:
-      - .envrc
+      - config/.envrc
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "print('healthy')"]
@@ -25,12 +25,12 @@ services:
   exit-monitor:
     build: .
     container_name: candlestick-exit-monitor
-    command: ["python", "exit_daemon.py"]
+    command: ["python", "src/exit_daemon.py"]
     environment:
       - AWS_REGION=us-west-2
       - SERVICE_NAME=exit-monitor
     env_file:
-      - .envrc
+      - config/.envrc
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "print('healthy')"]
@@ -46,12 +46,12 @@ services:
   combined-daemon:
     build: .
     container_name: candlestick-combined
-    command: ["python", "combined_daemon.py"]
+    command: ["python", "src/combined_daemon.py"]
     environment:
       - AWS_REGION=us-west-2
       - SERVICE_NAME=combined-daemon
     env_file:
-      - .envrc
+      - config/.envrc
     restart: unless-stopped
     ports:
       - "8000:8000"

@@ -24,7 +24,7 @@ def check_env_vars():
         print("❌ Missing required environment variables:")
         for var in missing:
             print(f"   - {var}")
-        print("\n💡 Copy .envrc.sample to .envrc and fill in your values")
+        print("\n💡 Copy config/.envrc.sample to config/.envrc and fill in your values")
         print("   Then run: direnv allow")
         return False
     
@@ -64,7 +64,7 @@ def run_combined_daemon():
     print("Press Ctrl+C to stop.\n")
     
     try:
-        subprocess.run([sys.executable, "combined_daemon.py"])
+        subprocess.run([sys.executable, "src/combined_daemon.py"])
     except KeyboardInterrupt:
         print("\n✋ Bot stopped.")
 
@@ -83,7 +83,7 @@ def setup_serverless():
     print()
     print("3. Configure triggers in QuickNode dashboard")
     print()
-    print("📖 See DEPLOYMENT_GUIDE.md for detailed instructions")
+    print("📖 See docs/DEPLOYMENT_GUIDE.md for detailed instructions")
 
 def run_manual_trading():
     """Guide for manual trading"""
@@ -105,7 +105,7 @@ def view_docs():
     print("\n📚 Documentation")
     print("=" * 50)
     print("\n- README.md - Project overview")
-    print("- DEPLOYMENT_GUIDE.md - Detailed deployment instructions")
+    print("- docs/DEPLOYMENT_GUIDE.md - Detailed deployment instructions")
     print("- INTEGRATION_SUMMARY.md - Technical integration details")
     print("- AGENTS.md - AI agent integration guide")
 
