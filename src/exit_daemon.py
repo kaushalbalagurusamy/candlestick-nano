@@ -1,5 +1,4 @@
 # exit_daemon.py
-import os
 import json
 import asyncio
 import base64
@@ -8,6 +7,7 @@ from solana.rpc.async_api import AsyncClient
 from solders.keypair import Keypair
 from solders.transaction import VersionedTransaction
 from solana.rpc.types import TxOpts
+from config import config, WSOL_MINT
 from exit_utils import (
     get_open_limit_orders, 
     cancel_limit_order_request,
@@ -17,29 +17,19 @@ from exit_utils import (
     subscribe_to_chainlink_logs
 )
 
-# Environment Configuration
-QN = os.environ["QUICKNODE_ENDPOINT"]
-WALLET_ADDRESS = os.environ["WALLET_ADDRESS"]
-WALLET_PRIVATE_KEY = os.environ["WALLET_PRIVATE_KEY"]
-STOP_LOSS_PERCENTAGE = float(os.getenv("STOP_LOSS_PERCENTAGE", "10"))
-TAKE_PROFIT_PERCENTAGE = float(os.getenv("TAKE_PROFIT_PERCENTAGE", "20"))
-MONITORING_INTERVAL = int(os.getenv("MONITORING_INTERVAL", "60"))
-CHAINLINK_AGGREGATOR = os.getenv("CHAINLINK_AGGREGATOR", "")
-WSOL_MINT = "So11111111111111111111111111111111111111112"
-
 # Track active positions
 active_positions = {}
 
 async def cancel_limit_order(order_pubkey: str):
     """Cancel a specific limit order"""
     try:
-        cancel_data = await cancel_limit_order_request(QN, WALLET_ADDRESS, order_pubkey)
+        cancel_data = await cancel_limit_order_request(config.quicknode_endpoint, config.wallet_address, order_pubkey)
         if not cancel_data:
             return None
             
         # Sign and send cancel transaction
-        async with AsyncClient(QN) as client:
-            keypair = Keypair.from_bytes(base58.b58decode(WALLET_PRIVATE_KEY))
+        async with AsyncClient(config.quicknode_endpoint) as client:
+            keypair = Keypair.from_bytes(base58.b58decode(config.wallet_private_key))
             tx_bytes = base64.b64decode(cancel_data["tx"])
             tx = VersionedTransaction.from_bytes(tx_bytes)
             tx.sign([keypair])
@@ -57,18 +47,18 @@ async def execute_market_sell(mint: str, amount: int):
     """Execute immediate market sell (stop-loss)"""
     try:
         # Get quote for sell
-        quote_data = await get_market_sell_quote(QN, mint, WSOL_MINT, amount)
+        quote_data = await get_market_sell_quote(config.quicknode_endpoint, mint, WSOL_MINT, amount)
         if not quote_data:
             return None
             
         # Get swap transaction
-        swap_data = await get_swap_transaction(QN, WALLET_ADDRESS, quote_data)
+        swap_data = await get_swap_transaction(config.quicknode_endpoint, config.wallet_address, quote_data)
         if not swap_data:
             return None
         
         # Sign and send transaction
-        async with AsyncClient(QN) as client:
-            keypair = Keypair.from_bytes(base58.b58decode(WALLET_PRIVATE_KEY))
+        async with AsyncClient(config.quicknode_endpoint) as client:
+            keypair = Keypair.from_bytes(base58.b58decode(config.wallet_private_key))
             tx_bytes = base64.b64decode(swap_data["swapTransaction"])
             tx = VersionedTransaction.from_bytes(tx_bytes)
             tx.sign([keypair])
@@ -86,15 +76,16 @@ async def execute_market_sell(mint: str, amount: int):
 
 async def monitor_price_feed():
     """Monitor Chainlink price feed for stop-loss triggers"""
-    if not CHAINLINK_AGGREGATOR:
+    chainlink_aggregator = config.chainlink_aggregator
+    if not chainlink_aggregator:
         return
     
     try:
-        ws = create_websocket_connection(QN)
+        ws = create_websocket_connection(config.quicknode_endpoint)
         if not ws:
             return
             
-        subscribe_to_chainlink_logs(ws, CHAINLINK_AGGREGATOR)
+        subscribe_to_chainlink_logs(ws, chainlink_aggregator)
         
         while True:
             try:
@@ -127,7 +118,7 @@ async def process_price_update(log_data: dict):
             price_change = ((current_price - entry_price) / entry_price) * 100
             
             # Check stop-loss condition
-            if price_change <= -STOP_LOSS_PERCENTAGE:
+            if price_change <= -config.stop_loss_percentage:
                 print(f"⚠️ Stop-loss triggered for {mint}: {price_change:.2f}%")
                 
                 # Cancel limit order if exists
@@ -153,7 +144,7 @@ async def update_active_positions():
     """Update active positions from open orders and token balances"""
     try:
         # Get open limit orders
-        orders = await get_open_limit_orders(QN, WALLET_ADDRESS)
+        orders = await get_open_limit_orders(config.quicknode_endpoint, config.wallet_address)
         
         # Update positions
         for order in orders:
@@ -171,11 +162,11 @@ async def update_active_positions():
 async def main():
     """Main exit daemon loop"""
     print("🛡️ Starting exit daemon...")
-    print(f"Stop-loss: {STOP_LOSS_PERCENTAGE}%")
-    print(f"Take-profit: {TAKE_PROFIT_PERCENTAGE}%")
+    print(f"Stop-loss: {config.stop_loss_percentage}%")
+    print(f"Take-profit: {config.take_profit_percentage}%")
     
     # Start price feed monitor in background
-    if CHAINLINK_AGGREGATOR:
+    if config.chainlink_aggregator:
         asyncio.create_task(monitor_price_feed())
     
     while True:
@@ -187,11 +178,11 @@ async def main():
             print(f"📊 Monitoring {len(active_positions)} positions")
             
             # Wait before next check
-            await asyncio.sleep(MONITORING_INTERVAL)
+            await asyncio.sleep(config.monitoring_interval)
             
         except Exception as e:
             print(f"Error in main loop: {e}")
-            await asyncio.sleep(MONITORING_INTERVAL)
+            await asyncio.sleep(config.monitoring_interval)
 
 if __name__ == "__main__":
     asyncio.run(main()) 

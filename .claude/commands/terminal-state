@@ -1,0 +1,100 @@
+#!/bin/bash
+# Track terminal execution context and command history
+
+echo "📍 Terminal State Tracker"
+
+# Current context
+echo ""
+echo "📂 Current Directory:"
+pwd
+echo ""
+echo "📁 Directory Contents:"
+ls -la | head -10
+[ $(ls -la | wc -l) -gt 10 ] && echo "... and $(( $(ls -la | wc -l) - 10 )) more files"
+
+# Git status
+echo ""
+echo "🔀 Git Status:"
+if [ -d .git ]; then
+    branch=$(git branch --show-current 2>/dev/null || echo "unknown")
+    echo "  Branch: $branch"
+    echo "  Status:"
+    git status --short | head -5
+    [ $(git status --short | wc -l) -gt 5 ] && echo "  ... and $(( $(git status --short | wc -l) - 5 )) more changes"
+else
+    echo "  Not a git repository"
+fi
+
+# Recent commands
+echo ""
+echo "📜 Recent Commands (last 10):"
+if [ -f /commandhistory/.bash_history ]; then
+    tail -10 /commandhistory/.bash_history | nl
+elif [ -f ~/.bash_history ]; then
+    tail -10 ~/.bash_history | nl
+else
+    history | tail -10
+fi
+
+# Active processes
+echo ""
+echo "⚙️ Active Python Processes:"
+ps aux | grep python | grep -v grep | head -5 || echo "  No Python processes running"
+
+# Environment state
+echo ""
+echo "🔧 Environment State:"
+echo "  Shell: $SHELL"
+echo "  Python: $(which python)"
+echo "  Virtual Env: ${VIRTUAL_ENV:-Not activated}"
+echo "  Solana Cluster: ${SOLANA_CLUSTER:-$(solana config get 2>/dev/null | grep 'RPC URL' | awk '{print $3}' || echo 'Not configured')}"
+
+# Trading bot specific
+echo ""
+echo "🤖 Trading Bot State:"
+if pgrep -f "combined_daemon.py" >/dev/null; then
+    echo "✅ Combined daemon is running (PID: $(pgrep -f combined_daemon.py))"
+else
+    echo "❌ Combined daemon is not running"
+fi
+
+if pgrep -f "entry_daemon.py" >/dev/null; then
+    echo "✅ Entry daemon is running (PID: $(pgrep -f entry_daemon.py))"
+else
+    echo "❌ Entry daemon is not running"
+fi
+
+if pgrep -f "exit_daemon.py" >/dev/null; then
+    echo "✅ Exit daemon is running (PID: $(pgrep -f exit_daemon.py))"
+else
+    echo "❌ Exit daemon is not running"
+fi
+
+# Open files/ports
+echo ""
+echo "🔌 Open Network Connections:"
+if command -v lsof >/dev/null 2>&1; then
+    lsof -i -P | grep -E "(python|node)" | head -5 || echo "  No open connections"
+elif command -v netstat >/dev/null 2>&1; then
+    netstat -tulpn 2>/dev/null | grep -E "(python|node)" | head -5 || echo "  No open connections"
+else
+    echo "  Network tools not available"
+fi
+
+# Suggestions based on state
+echo ""
+echo "💡 Context-Aware Suggestions:"
+if ! pgrep -f "daemon.py" >/dev/null; then
+    echo "  • No daemons running. Start with: python src/combined_daemon.py"
+fi
+if [ ! -f "config/.envrc" ]; then
+    echo "  • Missing config/.envrc. Copy from sample: cp config/.envrc.sample config/.envrc"
+fi
+if [ -z "$QUICKNODE_ENDPOINT" ]; then
+    echo "  • Environment not loaded. Run: source config/.envrc"
+fi
+
+# Memory usage
+echo ""
+echo "💾 System Resources:"
+free -h 2>/dev/null | grep -E "(total|Mem:|Swap:)" || echo "  Memory info not available"

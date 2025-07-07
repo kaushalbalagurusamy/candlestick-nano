@@ -1,4 +1,9 @@
-# trading_bot_core.py
+"""
+Core trading bot functionality for interacting with QuickNode Métis API.
+
+This module provides the central trading logic used across all bot implementations,
+including swap execution, limit order management, and safety checks.
+"""
 import os
 import time
 import json
@@ -6,31 +11,76 @@ import base64
 import base58
 import requests
 from datetime import datetime
+from typing import Dict, Optional, Any, Union, Tuple, List
 from solana.rpc.async_api import AsyncClient
 from solders.keypair import Keypair
 from solders.transaction import VersionedTransaction
 from solana.rpc.types import TxOpts
 
 class TradingBotCore:
-    """Core trading functionality shared across daemons"""
+    """
+    Core trading functionality shared across daemons.
     
-    def __init__(self, endpoint: str, wallet_address: str, private_key: str):
-        self.endpoint = endpoint
-        self.wallet_address = wallet_address
-        self.keypair = Keypair.from_bytes(base58.b58decode(private_key))
-        self.client = None
+    Provides unified interface for interacting with QuickNode Métis API
+    for token swaps, limit orders, and safety checks.
+    
+    Attributes:
+        endpoint: QuickNode Métis API endpoint URL
+        wallet_address: Public key of trading wallet
+        keypair: Solana keypair for transaction signing
+        client: Async Solana RPC client
+    """
+    
+    def __init__(self, endpoint: str, wallet_address: str, private_key: str) -> None:
+        """
+        Initialize trading bot core.
         
-    async def setup(self):
-        """Initialize async client"""
+        Args:
+            endpoint: QuickNode Métis-enabled endpoint URL
+            wallet_address: Public wallet address
+            private_key: Base58-encoded private key
+            
+        Raises:
+            ValueError: If private key is invalid
+        """
+        self.endpoint: str = endpoint
+        self.wallet_address: str = wallet_address
+        self.keypair: Keypair = Keypair.from_bytes(base58.b58decode(private_key))
+        self.client: Optional[AsyncClient] = None
+        
+    async def setup(self) -> None:
+        """
+        Initialize async client.
+        
+        Must be called before using any async methods.
+        """
         self.client = AsyncClient(self.endpoint)
         
-    async def cleanup(self):
-        """Cleanup resources"""
+    async def cleanup(self) -> None:
+        """
+        Cleanup resources.
+        
+        Should be called when shutting down to properly close connections.
+        """
         if self.client:
             await self.client.close()
     
-    async def get_quote(self, input_mint: str, output_mint: str, amount: int, slippage_bps: int) -> dict:
-        """Get swap quote from Métis"""
+    async def get_quote(self, input_mint: str, output_mint: str, amount: int, slippage_bps: int) -> Optional[Dict[str, Any]]:
+        """
+        Get swap quote from Métis API.
+        
+        Args:
+            input_mint: Token mint address to swap from
+            output_mint: Token mint address to swap to
+            amount: Amount in smallest unit (lamports for SOL)
+            slippage_bps: Slippage tolerance in basis points (100 = 1%)
+            
+        Returns:
+            Quote response dictionary if successful, None if failed
+            
+        Raises:
+            requests.RequestException: If API request fails
+        """
         try:
             params = {
                 "inputMint": input_mint,
@@ -45,8 +95,20 @@ class TradingBotCore:
             print(f"Error getting quote: {e}")
             return None
     
-    async def execute_swap(self, quote_data: dict) -> str:
-        """Execute swap transaction"""
+    async def execute_swap(self, quote_data: Dict[str, Any]) -> Optional[str]:
+        """
+        Execute swap transaction.
+        
+        Args:
+            quote_data: Quote response from get_quote method
+            
+        Returns:
+            Transaction signature if successful, None if failed
+            
+        Raises:
+            requests.RequestException: If API request fails
+            Exception: If transaction signing or sending fails
+        """
         try:
             swap_response = requests.post(
                 f"{self.endpoint}/swap",
@@ -72,8 +134,21 @@ class TradingBotCore:
             print(f"Error executing swap: {e}")
             return None
     
-    async def create_limit_order(self, mint: str, amount: int, profit_percentage: float):
-        """Create take-profit limit order"""
+    async def create_limit_order(self, mint: str, amount: int, profit_percentage: float) -> Optional[Dict[str, Any]]:
+        """
+        Create take-profit limit order.
+        
+        Args:
+            mint: Token mint address to sell
+            amount: Amount of tokens to sell
+            profit_percentage: Target profit percentage (e.g., 20 for 20%)
+            
+        Returns:
+            Limit order response if successful, None if failed
+            
+        Raises:
+            requests.RequestException: If API request fails
+        """
         try:
             take_profit_amount = int(amount * (1 + profit_percentage / 100))
             
@@ -98,8 +173,16 @@ class TradingBotCore:
             print(f"Error creating limit order: {e}")
         return None
     
-    async def get_open_orders(self) -> list:
-        """Get all open limit orders"""
+    async def get_open_orders(self) -> list[Dict[str, Any]]:
+        """
+        Get all open limit orders for the wallet.
+        
+        Returns:
+            List of open order dictionaries, empty list if failed
+            
+        Raises:
+            requests.RequestException: If API request fails
+        """
         try:
             response = requests.get(
                 f"{self.endpoint}/limit-orders/open",
@@ -111,8 +194,20 @@ class TradingBotCore:
             print(f"Error fetching open orders: {e}")
             return []
     
-    async def cancel_limit_order(self, order_pubkey: str):
-        """Cancel a limit order"""
+    async def cancel_limit_order(self, order_pubkey: str) -> Optional[str]:
+        """
+        Cancel a limit order.
+        
+        Args:
+            order_pubkey: Public key of the order to cancel
+            
+        Returns:
+            Transaction signature if successful, None if failed
+            
+        Raises:
+            requests.RequestException: If API request fails
+            Exception: If transaction signing or sending fails
+        """
         try:
             response = requests.post(
                 f"{self.endpoint}/limit-orders/cancel",
@@ -138,7 +233,21 @@ class TradingBotCore:
             return None
 
     async def check_token_safety(self, mint: str) -> bool:
-        """Check if token is safe (no freeze authority)"""
+        """
+        Check if token is safe to trade (no freeze authority).
+        
+        Tokens with freeze authority can have transfers frozen by the authority,
+        making them potentially unsafe for trading.
+        
+        Args:
+            mint: Token mint address to check
+            
+        Returns:
+            True if token has no freeze authority, False otherwise
+            
+        Raises:
+            Exception: If RPC call fails
+        """
         try:
             resp = await self.client.get_account_info_json_parsed(mint)
             if not resp.value:

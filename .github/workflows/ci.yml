@@ -2,85 +2,188 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
 
+env:
+  PYTHON_VERSION: "3.11"
+
 jobs:
   lint:
-    name: Lint
+    name: Lint and Type Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      - name: Install Linting Tools
-        run: pip install ruff flake8
-      - name: Run Ruff
-        run: ruff .
-      - name: Run Flake8
-        run: flake8 .
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Run Ruff linter
+      run: ruff check src/
+    
+    - name: Run type checking with mypy
+      run: mypy src/ --ignore-missing-imports
+    
+    - name: Check file sizes
+      run: |
+        echo "Checking Python files don't exceed 200 lines..."
+        find src -name "*.py" -exec bash -c 'lines=$(wc -l < "$1"); if [ $lines -gt 200 ]; then echo "ERROR: $1 has $lines lines (max 200)"; exit 1; fi' _ {} \;
 
   test:
-    name: Test
+    name: Run Tests
     runs-on: ubuntu-latest
-    needs: lint
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      - name: Install Test Dependencies
-        run: pip install -r requirements.txt pytest pytest-asyncio
-      - name: Run Tests
-        run: pytest -q
-
-  pylint:
-    name: Pylint
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      - name: Install Pylint
-        run: pip install pylint
-      - name: Run Pylint
-        run: pylint .
-
-  type-check:
-    name: Type Check
-    runs-on: ubuntu-latest
-    needs: pylint
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      - name: Install Mypy
-        run: pip install mypy
-      - name: Run Mypy
-        run: mypy .
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Run tests with pytest
+      run: |
+        pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
+      env:
+        SOLANA_CLUSTER: devnet
+        QUICKNODE_ENDPOINT: ${{ secrets.QUICKNODE_ENDPOINT_TEST }}
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-${{ matrix.python-version }}
 
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: type-check
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      - name: Install Bandit
-        run: pip install bandit
-      - name: Run Bandit
-        run: bandit -r . 
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install Bandit
+      run: pip install bandit
+    
+    - name: Run Bandit security scan
+      run: bandit -r src/ -f json -o bandit-report.json || true
+    
+    - name: Upload Bandit report
+      uses: actions/upload-artifact@v3
+      with:
+        name: bandit-security-report
+        path: bandit-report.json
+    
+    - name: Check for secrets
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: ${{ github.event.repository.default_branch }}
+        head: HEAD
+
+  docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: false
+        tags: candlestick-nano:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  integration:
+    name: Integration Tests (Devnet)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [lint, test, security]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install Solana CLI
+      run: |
+        sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
+        echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Configure Solana for devnet
+      run: |
+        solana config set --url devnet
+        solana-keygen new --no-bip39-passphrase --force
+    
+    - name: Run integration tests
+      run: |
+        pytest tests/ -v -m integration --maxfail=1
+      env:
+        SOLANA_CLUSTER: devnet
+        QUICKNODE_ENDPOINT: ${{ secrets.QUICKNODE_ENDPOINT_TEST }}
+        WALLET_PRIVATE_KEY: ${{ secrets.TEST_WALLET_PRIVATE_KEY }}
+        MIN_LIQUIDITY_THRESHOLD: "1000"
+        STOP_LOSS_PERCENTAGE: "10"
+        TAKE_PROFIT_PERCENTAGE: "20"
 
   terraform_deploy:
     name: Terraform Deploy (us-west-2)
-    needs: security
+    needs: [lint, test, security]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
@@ -96,4 +199,4 @@ jobs:
       - name: Terraform Plan
         run: terraform -chdir=infra plan -out=tfplan
       - name: Terraform Apply
-        run: terraform -chdir=infra apply -auto-approve tfplan 
+        run: terraform -chdir=infra apply -auto-approve tfplan

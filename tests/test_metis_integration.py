@@ -100,7 +100,7 @@ class TestMetisIntegration:
             }
             mock_get.return_value = mock_response
             
-            orders = await get_open_limit_orders()
+            orders = await get_open_limit_orders("https://test-endpoint", "test-wallet")
             
             assert len(orders) == 1
             assert orders[0]["pubkey"] == "Order123"

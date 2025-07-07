@@ -1,0 +1,134 @@
+#!/bin/bash
+# Verify environment configuration for trading bot
+
+echo "🔐 Checking Trading Bot Environment Configuration..."
+
+# Function to check environment variable
+check_env() {
+    if [ -n "${!1}" ]; then
+        if [[ "$1" == *"PRIVATE_KEY"* ]]; then
+            echo "✅ $1: [REDACTED - Set]"
+        else
+            echo "✅ $1: ${!1}"
+        fi
+    else
+        echo "❌ $1: Not set"
+        return 1
+    fi
+}
+
+# Function to check command availability
+check_command() {
+    if command -v "$1" >/dev/null 2>&1; then
+        echo "✅ $1: $(command -v $1) ($(${1} --version 2>&1 | head -1))"
+    else
+        echo "❌ $1: Not found"
+        return 1
+    fi
+}
+
+# Check Python environment
+echo ""
+echo "🐍 Python Environment:"
+check_command python
+check_command pip
+echo "  Python Path: $(which python)"
+echo "  Python Version: $(python --version)"
+echo "  Virtual Env: ${VIRTUAL_ENV:-Not activated}"
+
+# Check Solana tools
+echo ""
+echo "⚡ Solana Tools:"
+check_command solana
+if command -v solana >/dev/null 2>&1; then
+    echo "  Cluster: $(solana config get | grep 'RPC URL' | awk '{print $3}')"
+    echo "  Wallet: $(solana address 2>/dev/null || echo 'No wallet configured')"
+fi
+
+# Check critical environment variables
+echo ""
+echo "🔑 Trading Bot Configuration:"
+check_env QUICKNODE_ENDPOINT
+check_env WALLET_ADDRESS
+check_env WALLET_PRIVATE_KEY
+check_env MIN_LIQUIDITY_THRESHOLD
+check_env MAX_TOKEN_AGE
+check_env STOP_LOSS_PERCENTAGE
+check_env TAKE_PROFIT_PERCENTAGE
+check_env MONITORING_INTERVAL
+check_env SLIPPAGE_BPS
+
+# Check configuration files
+echo ""
+echo "📁 Configuration Files:"
+if [ -f "config/.envrc" ]; then
+    echo "✅ config/.envrc exists (permissions: $(stat -c %a config/.envrc 2>/dev/null || stat -f %A config/.envrc 2>/dev/null))"
+else
+    echo "❌ config/.envrc not found"
+fi
+
+if [ -f "config/.envrc.sample" ]; then
+    echo "✅ config/.envrc.sample exists"
+else
+    echo "❌ config/.envrc.sample not found"
+fi
+
+# Check dependencies
+echo ""
+echo "📦 Python Dependencies:"
+if [ -f "requirements.txt" ]; then
+    echo "✅ requirements.txt exists"
+    # Check if key packages are installed
+    for pkg in aiohttp solana base58; do
+        if pip show $pkg >/dev/null 2>&1; then
+            echo "  ✅ $pkg installed"
+        else
+            echo "  ❌ $pkg not installed"
+        fi
+    done
+else
+    echo "❌ requirements.txt not found"
+fi
+
+# Network connectivity
+echo ""
+echo "🌐 Network Connectivity:"
+if [ -n "$QUICKNODE_ENDPOINT" ]; then
+    if curl -s -X POST "$QUICKNODE_ENDPOINT" -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"getHealth","id":1}' >/dev/null 2>&1; then
+        echo "✅ QuickNode endpoint reachable"
+    else
+        echo "❌ Cannot reach QuickNode endpoint"
+    fi
+else
+    echo "⚠️  QuickNode endpoint not configured"
+fi
+
+# Wallet balance check
+echo ""
+echo "💰 Wallet Status:"
+if command -v solana >/dev/null 2>&1 && [ -n "$WALLET_ADDRESS" ]; then
+    balance=$(solana balance 2>/dev/null || echo "Error checking balance")
+    echo "  Balance: $balance"
+else
+    echo "  ⚠️  Cannot check balance - wallet not configured"
+fi
+
+# Summary
+echo ""
+echo "📊 Configuration Summary:"
+missing=0
+[ -z "$QUICKNODE_ENDPOINT" ] && ((missing++))
+[ -z "$WALLET_PRIVATE_KEY" ] && ((missing++))
+[ ! -f "config/.envrc" ] && ((missing++))
+
+if [ $missing -eq 0 ]; then
+    echo "✅ All critical configurations are set!"
+else
+    echo "⚠️  $missing critical configuration(s) missing"
+    echo ""
+    echo "🔧 Next Steps:"
+    [ ! -f "config/.envrc" ] && echo "  1. Copy config/.envrc.sample to config/.envrc"
+    [ -z "$QUICKNODE_ENDPOINT" ] && echo "  2. Set QUICKNODE_ENDPOINT in config/.envrc"
+    [ -z "$WALLET_PRIVATE_KEY" ] && echo "  3. Set WALLET_PRIVATE_KEY in config/.envrc"
+    echo "  4. Run: source config/.envrc"
+fi

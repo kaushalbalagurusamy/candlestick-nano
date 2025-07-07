@@ -1,0 +1,120 @@
+---
+description: 
+globs: src/**/*.py
+alwaysApply: true
+---
+
+# Trading Bot Development Standards
+
+## Python Coding Standards for Solana Trading
+
+@context {
+  "type": "standards",
+  "language": "python",
+  "framework": "solana-web3",
+  "scope": "trading_bot"
+}
+
+### Type Safety Requirements
+@type_requirements [
+  {
+    "id": "type_hints",
+    "rule": "Use type hints for all function parameters and returns",
+    "example": "def execute_swap(token_address: str, amount: float) -> Dict[str, Any]:"
+  },
+  {
+    "id": "typed_dict",
+    "rule": "Use TypedDict for API response structures",
+    "example": "class SwapResponse(TypedDict): signature: str"
+  },
+  {
+    "id": "enums",
+    "rule": "Use Enum for constants like trade states",
+    "example": "class TradeState(Enum): PENDING = 'pending'"
+  }
+]
+
+### Async Programming Standards
+- Use async/await for all I/O operations
+- Implement proper timeout handling
+- Use aiohttp for HTTP requests
+- Handle connection pool management
+
+### Error Handling Patterns
+@error_handling [
+  {
+    "pattern": "custom_exceptions",
+    "implementation": "Create domain-specific exceptions",
+    "example": "class InsufficientLiquidityError(TradingError): pass"
+  },
+  {
+    "pattern": "no_silent_failures",
+    "implementation": "Always raise exceptions, never return None for errors",
+    "severity": "critical"
+  },
+  {
+    "pattern": "transaction_retry",
+    "implementation": "Implement exponential backoff for RPC errors",
+    "max_retries": 3
+  }
+]
+
+### Trading Logic Standards
+- Validate all token addresses before operations
+- Check wallet balance before trades
+- Implement slippage protection
+- Log all transaction attempts with context
+
+### API Integration Patterns
+@api_patterns {
+  "quicknode_metis": {
+    "rate_limit": "Respect tier limits (10 RPS free)",
+    "error_codes": "Handle specific Métis error responses",
+    "retry_strategy": "Exponential backoff with jitter"
+  },
+  "solana_rpc": {
+    "connection": "Use persistent connection pools",
+    "confirmation": "Wait for 'confirmed' status minimum",
+    "error_handling": "Parse specific RPC error codes"
+  }
+}
+
+### Security Standards
+- Store private keys in environment variables only
+- Use secure file permissions (600) for config files
+- Implement transaction simulation before execution
+- Add maximum trade size limits
+- Never log sensitive data
+
+### Testing Requirements
+@testing_standards [
+  {
+    "id": "unit_tests",
+    "requirement": "Test all trading logic with mocked dependencies",
+    "coverage": "Minimum 80% for core modules"
+  },
+  {
+    "id": "integration_tests",
+    "requirement": "Test API integrations with recorded responses",
+    "tool": "pytest with pytest-asyncio"
+  },
+  {
+    "id": "devnet_tests",
+    "requirement": "Full end-to-end testing on devnet before mainnet",
+    "duration": "Minimum 24 hours"
+  }
+]
+
+### Performance Optimization
+- Cache token metadata to reduce API calls
+- Batch RPC requests where possible
+- Use connection pooling for HTTP clients
+- Implement proper resource cleanup
+
+### Monitoring and Logging
+@logging_requirements {
+  "transaction_logs": "Log all trades with signatures",
+  "error_logs": "Detailed stack traces with context",
+  "performance_logs": "Track API latency and success rates",
+  "audit_trail": "Maintain complete trading history"
+}

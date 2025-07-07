@@ -1,0 +1,88 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: 
+globs: **/*
+alwaysApply: true
+---
+
+# Architecture Guidelines
+
+## AI-First Trading Bot Principles
+
+@context {
+  "type": "architecture",
+  "purpose": "ai_first_trading_bot_development",
+  "scope": "project_wide",
+  "priority": "core"
+}
+
+### Modularity Requirements
+- Files should not exceed 200 lines (MANDATORY)
+- Break down trading logic into logical, reusable modules
+- Separate concerns: entry logic, exit logic, safety checks
+- Each module must have clear purpose documentation
+
+### Trading Bot Architecture Patterns
+- Core trading logic centralized in `trading_bot_core.py`
+- Separate daemons for different responsibilities
+- Use async/await for API calls and blockchain interactions
+- Implement circuit breakers for API rate limits
+
+### Documentation Standards
+@documentation_rules [
+  {
+    "id": "file_docstrings",
+    "requirement": "All Python files must have module-level docstrings",
+    "severity": "error"
+  },
+  {
+    "id": "function_docstrings",
+    "requirement": "All functions must have docstrings with Args, Returns, Raises",
+    "severity": "error"
+  },
+  {
+    "id": "type_hints",
+    "requirement": "All functions must use type hints",
+    "severity": "error"
+  },
+  {
+    "id": "trading_safety",
+    "requirement": "Document all trading risks and safety checks",
+    "severity": "critical"
+  }
+]
+
+### Code Organization
+- Separate configuration from logic
+- Use dependency injection for testability
+- Implement proper error handling with custom exceptions
+- Follow single responsibility principle
+
+### Trading Safety Requirements
+- ALWAYS test on devnet first
+- Implement rate limiting for API calls
+- Add circuit breakers for failed trades
+- Log all transactions with signatures
+- Never hardcode private keys
+
+### Analysis Process
+Before implementing any trading feature:
+
+1. **Risk Analysis**
+   - Identify potential financial risks
+   - Consider slippage and MEV protection
+   - Plan for network congestion scenarios
+
+2. **Safety Planning**
+   - Implement input validation
+   - Add balance checks before trades
+   - Consider partial fill scenarios
+
+3. **Testing Strategy**
+   - Write unit tests for logic
+   - Create integration tests with mocked APIs
+   - Plan devnet testing scenarios

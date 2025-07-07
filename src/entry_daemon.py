@@ -1,5 +1,4 @@
 # entry_daemon.py
-import os
 import time
 import json
 import base64
@@ -11,17 +10,7 @@ from solana.rpc.async_api import AsyncClient
 from solders.keypair import Keypair
 from solders.transaction import VersionedTransaction
 from solana.rpc.types import TxOpts
-
-# Environment Configuration
-QN = os.environ["QUICKNODE_ENDPOINT"]
-WALLET_ADDRESS = os.environ["WALLET_ADDRESS"]
-WALLET_PRIVATE_KEY = os.environ["WALLET_PRIVATE_KEY"]
-MIN_LIQUIDITY_THRESHOLD = int(os.getenv("MIN_LIQUIDITY_THRESHOLD", "100000"))
-MIN_24H_TRADING_VOLUME = float(os.getenv("MIN_24H_TRADING_VOLUME_THRESHOLD", "400000"))
-MAX_TOKEN_AGE = int(os.getenv("MAX_TOKEN_AGE", "82800"))  # 23 hours default
-SLIPPAGE_BPS = int(os.getenv("SLIPPAGE_BPS", "100"))
-MONITORING_INTERVAL = int(os.getenv("MONITORING_INTERVAL", "30"))
-WSOL_MINT = "So11111111111111111111111111111111111111112"
+from config import config, WSOL_MINT
 
 # Track seen pools to avoid duplicates
 seen_pools = set()
@@ -29,7 +18,7 @@ seen_pools = set()
 async def fetch_new_pools():
     """Fetch recently deployed pools from QuickNode Métis /new-pools endpoint"""
     try:
-        response = requests.get(f"{QN}/new-pools")
+        response = requests.get(f"{config.quicknode_endpoint}/new-pools")
         response.raise_for_status()
         return response.json().get("data", [])
     except Exception as e:
@@ -60,9 +49,9 @@ async def get_liquidity_quote(mint: str, amount: int = 1_000_000_000) -> dict:
             "inputMint": WSOL_MINT,
             "outputMint": mint,
             "amount": str(amount),
-            "slippageBps": str(SLIPPAGE_BPS)
+            "slippageBps": str(config.slippage_bps)
         }
-        response = requests.get(f"{QN}/quote", params=params)
+        response = requests.get(f"{config.quicknode_endpoint}/quote", params=params)
         response.raise_for_status()
         return response.json()
     except Exception as e:
@@ -74,9 +63,9 @@ async def execute_swap(quote_data: dict) -> str:
     try:
         # Get swap transaction
         swap_response = requests.post(
-            f"{QN}/swap",
+            f"{config.quicknode_endpoint}/swap",
             json={
-                "owner": WALLET_ADDRESS,
+                "owner": config.wallet_address,
                 "quoteResponse": quote_data
             }
         )
@@ -84,8 +73,8 @@ async def execute_swap(quote_data: dict) -> str:
         swap_data = swap_response.json()
         
         # Sign and send transaction
-        async with AsyncClient(QN) as client:
-            keypair = Keypair.from_bytes(base58.b58decode(WALLET_PRIVATE_KEY))
+        async with AsyncClient(config.quicknode_endpoint) as client:
+            keypair = Keypair.from_bytes(base58.b58decode(config.wallet_private_key))
             tx_bytes = base64.b64decode(swap_data["swapTransaction"])
             tx = VersionedTransaction.from_bytes(tx_bytes)
             
@@ -116,11 +105,12 @@ async def process_new_token(pool_data: dict, client: AsyncClient):
     try:
         pool_time = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
         age_seconds = (datetime.utcnow() - pool_time.replace(tzinfo=None)).total_seconds()
-        if age_seconds > MAX_TOKEN_AGE:
+        if age_seconds > config.max_token_age:
             print(f"Skipping {mint}: Too old ({age_seconds/3600:.1f} hours)")
             return
-    except:
-        pass
+    except (ValueError, TypeError) as e:
+        print(f"Skipping {mint}: Invalid timestamp format")
+        return
     
     # Freeze authority check
     if await check_freeze_authority(client, mint):
@@ -133,7 +123,7 @@ async def process_new_token(pool_data: dict, client: AsyncClient):
         return
     
     out_amount = int(quote.get("outAmount", 0))
-    if out_amount < MIN_LIQUIDITY_THRESHOLD:
+    if out_amount < config.min_liquidity_threshold:
         print(f"Skipping {mint}: Insufficient liquidity ({out_amount})")
         return
     
@@ -153,10 +143,10 @@ async def create_limit_order(mint: str, amount: int):
         take_profit_amount = int(amount * 1.2)
         
         response = requests.post(
-            f"{QN}/limit-orders/create",
+            f"{config.quicknode_endpoint}/limit-orders/create",
             json={
-                "maker": WALLET_ADDRESS,
-                "payer": WALLET_ADDRESS,
+                "maker": config.wallet_address,
+                "payer": config.wallet_address,
                 "inputMint": mint,
                 "outputMint": WSOL_MINT,
                 "params": {
@@ -174,11 +164,11 @@ async def create_limit_order(mint: str, amount: int):
 async def main():
     """Main entry daemon loop"""
     print("🚀 Starting entry daemon...")
-    print(f"Min Liquidity: {MIN_LIQUIDITY_THRESHOLD}")
-    print(f"Max Token Age: {MAX_TOKEN_AGE}s")
-    print(f"Monitoring Interval: {MONITORING_INTERVAL}s")
+    print(f"Min Liquidity: {config.min_liquidity_threshold}")
+    print(f"Max Token Age: {config.max_token_age}s")
+    print(f"Monitoring Interval: {config.monitoring_interval}s")
     
-    async with AsyncClient(QN) as client:
+    async with AsyncClient(config.quicknode_endpoint) as client:
         while True:
             try:
                 # Fetch new pools
@@ -189,11 +179,11 @@ async def main():
                     await process_new_token(pool, client)
                 
                 # Wait before next check
-                await asyncio.sleep(MONITORING_INTERVAL)
+                await asyncio.sleep(config.monitoring_interval)
                 
             except Exception as e:
                 print(f"Error in main loop: {e}")
-                await asyncio.sleep(MONITORING_INTERVAL)
+                await asyncio.sleep(config.monitoring_interval)
 
 if __name__ == "__main__":
     asyncio.run(main()) 

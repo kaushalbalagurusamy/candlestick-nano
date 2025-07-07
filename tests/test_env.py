@@ -34,9 +34,23 @@ async def test_wallet_connection_and_balance():
         assert cluster in rpc_url, "RPC endpoint does not match SOLANA_CLUSTER"
 
     private_key = os.environ["WALLET_PRIVATE_KEY"]
+    wallet_address = os.environ["WALLET_ADDRESS"]
     kp = Keypair.from_bytes(base58.b58decode(private_key))
     client = AsyncClient(rpc_url)
+    
+    print(f"\n--- Wallet Balance Test ---")
+    print(f"Wallet Address: {wallet_address}")
+    print(f"Public Key from Private Key: {kp.pubkey()}")
+    print(f"Network: {cluster}")
+    
     balance_resp = await client.get_balance(kp.pubkey())
+    balance_lamports = balance_resp.value
+    balance_sol = balance_lamports / 1_000_000_000  # Convert lamports to SOL
+    
+    print(f"Balance: {balance_lamports:,} lamports")
+    print(f"Balance: {balance_sol:.9f} SOL")
+    print("--- End Wallet Balance Test ---\n")
+    
     assert isinstance(balance_resp.value, int)
     await client.close()
 
@@ -67,7 +81,7 @@ async def test_jupiter_tokens_endpoint():
         assert isinstance(data, list), "METIS tokens endpoint did not return a list"
         assert data, "METIS tokens endpoint returned an empty list"
 
-@pytest_asyncio.fixture(scope="module")
+@pytest_asyncio.fixture(scope="function")
 async def sample_mint():
     metis_url = os.environ["JUPITER_API_BASE_URL"]
     async with aiohttp.ClientSession() as session:

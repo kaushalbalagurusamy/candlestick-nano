@@ -1,0 +1,132 @@
+#!/bin/bash
+# Safely execute trading bot commands with validation
+
+echo "🛡️ Safe Trading Bot Execution Helper"
+
+# Parse command
+COMMAND="$1"
+shift
+ARGS="$@"
+
+# Function to confirm dangerous operations
+confirm_action() {
+    echo "⚠️  WARNING: $1"
+    echo "Are you sure you want to proceed? (yes/no)"
+    read -r response
+    if [[ "$response" != "yes" ]]; then
+        echo "❌ Operation cancelled"
+        exit 1
+    fi
+}
+
+# Function to check prerequisites
+check_prerequisites() {
+    echo "🔍 Checking prerequisites..."
+    
+    # Check if on devnet
+    if command -v solana >/dev/null 2>&1; then
+        cluster=$(solana config get | grep 'RPC URL' | awk '{print $3}')
+        if [[ "$cluster" == *"mainnet"* ]]; then
+            echo "⚠️  WARNING: Connected to MAINNET!"
+            confirm_action "You are about to run on MAINNET with real funds"
+        else
+            echo "✅ Connected to: $cluster"
+        fi
+    fi
+    
+    # Check wallet balance
+    if [ -n "$WALLET_ADDRESS" ]; then
+        balance=$(solana balance 2>/dev/null || echo "0")
+        echo "💰 Wallet balance: $balance"
+        if [[ "$balance" == "0"* ]]; then
+            echo "⚠️  WARNING: Wallet has no SOL!"
+        fi
+    fi
+    
+    # Check environment variables
+    missing_vars=()
+    for var in QUICKNODE_ENDPOINT WALLET_PRIVATE_KEY; do
+        if [ -z "${!var}" ]; then
+            missing_vars+=("$var")
+        fi
+    done
+    
+    if [ ${#missing_vars[@]} -gt 0 ]; then
+        echo "❌ Missing required environment variables: ${missing_vars[*]}"
+        echo "💡 Run: source config/.envrc"
+        exit 1
+    fi
+    
+    echo "✅ Prerequisites check passed"
+}
+
+# Handle different commands
+case "$COMMAND" in
+    "combined_daemon.py"|"src/combined_daemon.py")
+        echo "🤖 Starting Combined Trading Bot Daemon..."
+        check_prerequisites
+        echo ""
+        echo "📊 Configuration:"
+        echo "  Min Liquidity: ${MIN_LIQUIDITY_THRESHOLD:-100000}"
+        echo "  Stop Loss: ${STOP_LOSS_PERCENTAGE:-10}%"
+        echo "  Take Profit: ${TAKE_PROFIT_PERCENTAGE:-20}%"
+        echo "  Monitoring Interval: ${MONITORING_INTERVAL:-30}s"
+        echo ""
+        confirm_action "Start trading bot with above configuration?"
+        echo "🚀 Starting bot..."
+        exec python src/combined_daemon.py $ARGS
+        ;;
+        
+    "buy.py"|"src/buy.py")
+        echo "💸 Executing Manual Buy Order..."
+        check_prerequisites
+        if [ -z "$1" ]; then
+            echo "❌ Error: Token address required"
+            echo "Usage: safe-execute buy.py <token_address>"
+            exit 1
+        fi
+        echo "🪙 Token: $1"
+        confirm_action "Execute buy order for token $1?"
+        exec python src/buy.py $ARGS
+        ;;
+        
+    "quick_start_mvp.py"|"src/quick_start_mvp.py")
+        echo "🎯 Running Quick Start Setup..."
+        exec python src/quick_start_mvp.py $ARGS
+        ;;
+        
+    "test"|"pytest")
+        echo "🧪 Running Tests Safely..."
+        echo "Setting SOLANA_CLUSTER=devnet for tests..."
+        export SOLANA_CLUSTER=devnet
+        exec pytest $ARGS
+        ;;
+        
+    "devnet-airdrop")
+        echo "💧 Requesting Devnet Airdrop..."
+        if command -v solana >/dev/null 2>&1; then
+            cluster=$(solana config get | grep 'RPC URL' | awk '{print $3}')
+            if [[ "$cluster" != *"devnet"* ]]; then
+                echo "❌ Not connected to devnet!"
+                echo "Run: solana config set --url devnet"
+                exit 1
+            fi
+            echo "Requesting 2 SOL..."
+            solana airdrop 2
+        else
+            echo "❌ Solana CLI not installed"
+        fi
+        ;;
+        
+    *)
+        echo "❌ Unknown command: $COMMAND"
+        echo ""
+        echo "📚 Available safe commands:"
+        echo "  safe-execute combined_daemon.py    - Start main trading bot"
+        echo "  safe-execute buy.py <token>       - Manual buy order"
+        echo "  safe-execute quick_start_mvp.py   - Interactive setup"
+        echo "  safe-execute test                 - Run tests on devnet"
+        echo "  safe-execute devnet-airdrop       - Request devnet SOL"
+        exit 1
+        ;;
+esac

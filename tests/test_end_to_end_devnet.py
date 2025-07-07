@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import asyncio
 import pytest
@@ -10,11 +11,14 @@ import base58
 from solders.keypair import Keypair
 import base64
 import types
-import exit_monitor
+from solana.rpc.async_api import AsyncClient
 
+# Add src directory to Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+import exit_monitor
 from buy import main as buy_main
 from exit_monitor import monitor_coin
-from solana.rpc.async_api import AsyncClient
 
 # Skip end-to-end if not running on devnet
 pytestmark = pytest.mark.skipif(
@@ -39,8 +43,9 @@ async def test_end_to_end_devnet(tmp_path):
         resp = await session.get(f"{metis_url}/tokens")
         assert resp.status == 200, f"Tokens endpoint returned {resp.status}"
         data = await resp.json()
-    mints = data.get("mints", [])[:10]
-    tokens = [{"symbol": t.get("symbol"), "address": t.get("address")} for t in mints]
+    # Data is already a list of tokens, not a dict with "mints" key
+    tokens_list = data[:10] if isinstance(data, list) else data.get("mints", [])[:10]
+    tokens = [{"symbol": t.get("symbol", "UNKNOWN"), "address": t.get("address", "")} for t in tokens_list if t.get("address")]
     assert tokens, "No tokens fetched"
     logger.info(f"Fetched {len(tokens)} tokens: {tokens}")
 
@@ -48,20 +53,13 @@ async def test_end_to_end_devnet(tmp_path):
     tokens_file = Path(__file__).parent / "devnet_tokens.json"
     tokens_file.write_text(json.dumps(tokens))
 
-    # 4. Airdrop SOL and perform buys via buy_main
+    # 4. Perform buys via buy_main (airdrop now handled by external cron)
     root_tokens = Path(__file__).parent.parent / "tokens.json"
     backup = root_tokens.read_text() if root_tokens.exists() else None
     root_tokens.write_text(tokens_file.read_text())
 
     os.environ["AMOUNT_SOL"] = "0.001"
 
-    rpc_url = os.environ["QUICKNODE_ENDPOINT"]
-    private_key = os.environ["WALLET_PRIVATE_KEY"]
-    kp = Keypair.from_bytes(base58.b58decode(private_key))
-    client = AsyncClient(rpc_url)
-    sig = await client.request_airdrop(kp.pubkey(), int(1_000_000_000))
-    await client.confirm_transaction(sig.value)
-    await client.close()
     try:
         await buy_main()
         logger.info("buy_main completed successfully")

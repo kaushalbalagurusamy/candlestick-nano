@@ -1,22 +1,10 @@
 # combined_daemon.py
-import os
 import asyncio
 import requests
 from datetime import datetime
 from typing import Dict, Set
 from trading_bot_core import TradingBotCore
-
-# Environment Configuration
-QN = os.environ["QUICKNODE_ENDPOINT"]
-WALLET_ADDRESS = os.environ["WALLET_ADDRESS"]
-WALLET_PRIVATE_KEY = os.environ["WALLET_PRIVATE_KEY"]
-MIN_LIQUIDITY_THRESHOLD = int(os.getenv("MIN_LIQUIDITY_THRESHOLD", "100000"))
-MAX_TOKEN_AGE = int(os.getenv("MAX_TOKEN_AGE", "82800"))
-SLIPPAGE_BPS = int(os.getenv("SLIPPAGE_BPS", "100"))
-STOP_LOSS_PERCENTAGE = float(os.getenv("STOP_LOSS_PERCENTAGE", "10"))
-TAKE_PROFIT_PERCENTAGE = float(os.getenv("TAKE_PROFIT_PERCENTAGE", "20"))
-MONITORING_INTERVAL = int(os.getenv("MONITORING_INTERVAL", "30"))
-WSOL_MINT = "So11111111111111111111111111111111111111112"
+from config import config, WSOL_MINT
 
 # State management
 seen_pools: Set[str] = set()
@@ -25,7 +13,7 @@ active_positions: Dict[str, dict] = {}
 async def fetch_new_pools() -> list:
     """Fetch recently deployed pools"""
     try:
-        response = requests.get(f"{QN}/new-pools")
+        response = requests.get(f"{config.quicknode_endpoint}/new-pools")
         response.raise_for_status()
         return response.json().get("data", [])
     except Exception as e:
@@ -49,7 +37,7 @@ async def process_new_pools(bot: TradingBotCore):
             pool_time = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
             age_seconds = (datetime.utcnow() - pool_time.replace(tzinfo=None)).total_seconds()
             
-            if age_seconds > MAX_TOKEN_AGE:
+            if age_seconds > config.max_token_age:
                 print(f"Skipping {mint}: Too old ({age_seconds/3600:.1f} hours)")
                 continue
         except:
@@ -61,12 +49,12 @@ async def process_new_pools(bot: TradingBotCore):
             continue
         
         # Liquidity check
-        quote = await bot.get_quote(WSOL_MINT, mint, 1_000_000_000, SLIPPAGE_BPS)
+        quote = await bot.get_quote(WSOL_MINT, mint, 1_000_000_000, config.slippage_bps)
         if not quote:
             continue
             
         out_amount = int(quote.get("outAmount", 0))
-        if out_amount < MIN_LIQUIDITY_THRESHOLD:
+        if out_amount < config.min_liquidity_threshold:
             print(f"Skipping {mint}: Insufficient liquidity")
             continue
         
@@ -78,7 +66,7 @@ async def process_new_pools(bot: TradingBotCore):
             print(f"✅ Bought {mint} - TX: {tx_sig}")
             
             # Create limit order and track position
-            order_pubkey = await bot.create_limit_order(mint, out_amount, TAKE_PROFIT_PERCENTAGE)
+            order_pubkey = await bot.create_limit_order(mint, out_amount, config.take_profit_percentage)
             if order_pubkey:
                 active_positions[mint] = {
                     "order_pubkey": order_pubkey,
@@ -92,7 +80,7 @@ async def check_stop_loss_conditions(bot: TradingBotCore):
     for mint, position in list(active_positions.items()):
         try:
             # Get current price via quote
-            quote = await bot.get_quote(mint, WSOL_MINT, position["amount"], SLIPPAGE_BPS * 5)
+            quote = await bot.get_quote(mint, WSOL_MINT, position["amount"], config.slippage_bps * 5)
             if not quote:
                 continue
             
@@ -102,7 +90,7 @@ async def check_stop_loss_conditions(bot: TradingBotCore):
             price_change = ((current_value - entry_value) / entry_value) * 100
             
             # Check stop-loss
-            if price_change <= -STOP_LOSS_PERCENTAGE:
+            if price_change <= -config.stop_loss_percentage:
                 print(f"⚠️ Stop-loss triggered for {mint}: {price_change:.2f}%")
                 
                 # Cancel limit order
@@ -146,11 +134,11 @@ async def update_positions(bot: TradingBotCore):
 async def main():
     """Main combined daemon loop - MVP version"""
     print("🤖 Starting Combined Trading Bot (MVP)...")
-    print(f"📊 Min Liquidity: {MIN_LIQUIDITY_THRESHOLD}")
-    print(f"🛑 Stop-loss: {STOP_LOSS_PERCENTAGE}%")
-    print(f"🎯 Take-profit: {TAKE_PROFIT_PERCENTAGE}%")
+    print(f"📊 Min Liquidity: {config.min_liquidity_threshold}")
+    print(f"🛑 Stop-loss: {config.stop_loss_percentage}%")
+    print(f"🎯 Take-profit: {config.take_profit_percentage}%")
     
-    bot = TradingBotCore(QN, WALLET_ADDRESS, WALLET_PRIVATE_KEY)
+    bot = TradingBotCore(config.quicknode_endpoint, config.wallet_address, config.wallet_private_key)
     await bot.setup()
     
     try:
@@ -167,11 +155,11 @@ async def main():
                 print(f"💼 Active positions: {len(active_positions)}")
                 
                 # Wait
-                await asyncio.sleep(MONITORING_INTERVAL)
+                await asyncio.sleep(config.monitoring_interval)
                 
             except Exception as e:
                 print(f"Error in main loop: {e}")
-                await asyncio.sleep(MONITORING_INTERVAL)
+                await asyncio.sleep(config.monitoring_interval)
                 
     finally:
         await bot.cleanup()

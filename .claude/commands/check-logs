@@ -1,0 +1,80 @@
+#!/bin/bash
+# Check trading bot logs and analyze for errors or important events
+
+echo "🔍 Analyzing Trading Bot Logs..."
+
+# Function to check if file exists
+check_file() {
+    if [ -f "$1" ]; then
+        echo "✅ Found: $1"
+        return 0
+    else
+        echo "❌ Not found: $1"
+        return 1
+    fi
+}
+
+# Check for different log types
+echo ""
+echo "📋 Checking for log files..."
+
+# Bot logs
+if check_file "bot.log"; then
+    echo "📊 Recent bot activity:"
+    tail -20 bot.log | grep -E "(ERROR|WARNING|TRADE|Transaction)" || echo "No recent errors or trades"
+fi
+
+# Systemd logs
+if command -v journalctl >/dev/null 2>&1; then
+    echo ""
+    echo "📊 Systemd service logs (if running):"
+    sudo journalctl -u candlestick-bot --no-pager -n 20 2>/dev/null || echo "Service not found or not running"
+fi
+
+# Python logs
+if [ -d "logs" ]; then
+    echo ""
+    echo "📁 Log directory contents:"
+    ls -la logs/
+    
+    # Check latest log file
+    latest_log=$(ls -t logs/*.log 2>/dev/null | head -1)
+    if [ -n "$latest_log" ]; then
+        echo ""
+        echo "📄 Latest log file: $latest_log"
+        echo "Recent entries:"
+        tail -20 "$latest_log" | grep -E "(ERROR|WARNING|executed|failed|Stop-loss|Limit order)"
+    fi
+fi
+
+# Transaction logs
+echo ""
+echo "🔍 Checking for transaction signatures..."
+grep -r "signature" logs/ 2>/dev/null | tail -10 || echo "No transaction signatures found in logs"
+
+# Error patterns
+echo ""
+echo "⚠️  Error Analysis:"
+echo "Recent errors:"
+find . -name "*.log" -type f -exec grep -l "ERROR\|Exception\|Failed" {} \; 2>/dev/null | while read file; do
+    echo "  In $file:"
+    grep -n "ERROR\|Exception\|Failed" "$file" | tail -5
+done
+
+# Trading activity summary
+echo ""
+echo "📈 Trading Activity Summary:"
+if [ -f "bot.log" ] || [ -d "logs" ]; then
+    echo "  Buy orders: $(grep -r "Executing buy" . --include="*.log" 2>/dev/null | wc -l)"
+    echo "  Sell orders: $(grep -r "Executing sell\|Stop-loss triggered" . --include="*.log" 2>/dev/null | wc -l)"
+    echo "  Limit orders: $(grep -r "Limit order created" . --include="*.log" 2>/dev/null | wc -l)"
+    echo "  Errors: $(grep -r "ERROR\|Exception" . --include="*.log" 2>/dev/null | wc -l)"
+fi
+
+# Debugging suggestions
+echo ""
+echo "💡 Debugging Tips:"
+echo "  - For real-time monitoring: tail -f bot.log"
+echo "  - For error details: grep -A5 -B5 ERROR bot.log"
+echo "  - For transaction history: grep signature bot.log"
+echo "  - For systemd logs: journalctl -u candlestick-bot -f"

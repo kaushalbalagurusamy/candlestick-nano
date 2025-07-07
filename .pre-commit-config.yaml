@@ -1,0 +1,80 @@
+# Pre-commit hooks for code quality and safety
+repos:
+  # Python code formatting and linting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.6
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # Type checking with mypy
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-requests, types-aiofiles]
+        args: [--ignore-missing-imports]
+
+  # Security checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [-r, src/, -ll]
+        exclude: tests/
+
+  # Check for secrets
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: mixed-line-ending
+
+  # Markdown formatting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.37.0
+    hooks:
+      - id: markdownlint
+        args: [--fix]
+
+  # File size check (enforce 200 line limit)
+  - repo: local
+    hooks:
+      - id: check-file-size
+        name: Check file size limit (200 lines)
+        entry: bash -c 'for file in "$@"; do if [[ "$file" == *.py ]] && [ $(wc -l < "$file") -gt 200 ]; then echo "ERROR: $file exceeds 200 lines ($(wc -l < "$file") lines)"; exit 1; fi; done' --
+        language: system
+        files: \.py$
+
+      - id: check-docstrings
+        name: Check Python docstrings
+        entry: bash -c 'for file in "$@"; do if [[ "$file" == *.py ]] && ! grep -q "^\"\"\"" "$file"; then echo "WARNING: $file missing module docstring"; fi; done' --
+        language: system
+        files: \.py$
+
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: [mypy, bandit]  # These require additional setup in CI
