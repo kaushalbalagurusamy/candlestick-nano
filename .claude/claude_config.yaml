@@ -1,0 +1,178 @@
+# Claude AI Configuration for Candlestick Nano Trading Bot
+
+project:
+  name: "Candlestick Nano Trading Bot"
+  type: "AI-First Python Trading System"
+  version: "2.0"
+  
+context:
+  domain: "automated_trading"
+  blockchain: "solana"
+  programming_language: "python"
+  framework: "fastapi_async"
+  ml_focus: "real_time_inference"
+
+# Development preferences for Claude AI assistance
+development:
+  code_style:
+    max_file_lines: 200
+    async_first: true
+    type_hints_mandatory: true
+    error_handling: "domain_specific_exceptions"
+    documentation: "google_style_docstrings"
+    
+  testing:
+    framework: "pytest"
+    async_support: true
+    coverage_target: 90
+    mock_strategy: "comprehensive_mocking"
+    
+  architecture:
+    pattern: "dependency_injection"
+    modularity: "high"
+    coupling: "loose"
+    cohesion: "high"
+
+# Trading bot specific preferences
+trading_focus:
+  safety_first: true
+  risk_management: "comprehensive"
+  performance_requirements:
+    trade_execution_max_seconds: 5
+    ml_inference_max_ms: 100
+    api_response_max_ms: 500
+    
+  validation_requirements:
+    pre_trade_validation: "mandatory"
+    slippage_protection: true
+    balance_verification: true
+    liquidity_checks: true
+
+# AI/ML development preferences  
+ml_preferences:
+  model_types: ["classification", "regression", "time_series"]
+  inference_requirements: "real_time"
+  feature_engineering: "comprehensive"
+  model_monitoring: "continuous"
+  
+# Code generation preferences
+code_generation:
+  prefer:
+    - "async/await patterns"
+    - "pydantic models for validation"
+    - "comprehensive error handling"
+    - "detailed logging"
+    - "type-safe interfaces"
+    - "dependency injection"
+    
+  avoid:
+    - "hardcoded values"
+    - "blocking I/O operations"
+    - "bare except clauses"
+    - "classes when functions suffice"
+    - "files over 200 lines"
+    
+  safety_requirements:
+    - "validate all inputs"
+    - "check balances before trades"
+    - "implement timeouts"
+    - "log all operations"
+    - "encrypt sensitive data"
+
+# Project-specific patterns
+patterns:
+  trading_validation: |
+    Always validate trades with:
+    1. Token address verification
+    2. Balance sufficiency check
+    3. Slippage limits
+    4. Liquidity verification
+    5. Risk assessment
+    
+  async_error_handling: |
+    Use try/except with:
+    1. Specific exception types
+    2. Timeout protection
+    3. Retry logic with backoff
+    4. Comprehensive logging
+    5. Graceful degradation
+    
+  ml_inference_pattern: |
+    For ML predictions:
+    1. Feature validation
+    2. Model health check
+    3. Timeout protection
+    4. Confidence scoring
+    5. Performance monitoring
+
+# File organization preferences
+file_organization:
+  core_modules:
+    - "trading_bot_core.py: Central coordinator"
+    - "entry_daemon.py: Entry signal processing"
+    - "exit_daemon.py: Exit management"
+    - "buy.py: Transaction execution"
+    - "exit_utils.py: Exit utilities"
+    
+  support_modules:
+    - "config.py: Configuration management"
+    - "dependencies.py: Dependency injection"
+    - "exceptions.py: Custom exceptions"
+    - "utils.py: Common utilities"
+    
+  testing_structure:
+    - "test_*.py: Unit tests"
+    - "test_integration_*.py: Integration tests"
+    - "test_e2e_*.py: End-to-end tests"
+    - "conftest.py: Test configuration"
+
+# Communication preferences
+communication:
+  explanation_style: "detailed_with_examples"
+  code_comments: "extensive_for_complex_logic"
+  documentation: "comprehensive_with_usage_examples"
+  error_messages: "actionable_and_specific"
+  
+# Performance and monitoring
+monitoring:
+  metrics_to_track:
+    - "trade_execution_time"
+    - "ml_inference_latency"
+    - "api_response_time"
+    - "success_rate"
+    - "slippage_actual_vs_expected"
+    - "position_holding_time"
+    
+  logging_requirements:
+    - "structured_json_logging"
+    - "trade_audit_trail"
+    - "performance_metrics"
+    - "error_context"
+    - "security_events"
+
+# Integration points
+integrations:
+  external_apis:
+    - "quicknode_metis: Market data and analysis"
+    - "solana_rpc: Blockchain interaction"
+    - "dex_apis: Liquidity and pricing"
+    
+  internal_systems:
+    - "configuration_management"
+    - "logging_infrastructure"
+    - "monitoring_dashboard"
+    - "alert_system"
+
+# Development workflow preferences
+workflow:
+  git_practices:
+    - "feature_branches"
+    - "comprehensive_commit_messages"
+    - "pre_commit_testing"
+    - "code_review_process"
+    
+  deployment:
+    - "devnet_testing_first"
+    - "gradual_rollout"
+    - "monitoring_before_full_deployment"
+    - "rollback_capability" 
