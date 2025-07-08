@@ -222,6 +222,9 @@ For manual token discovery and trading:
 - Automated take-profit orders
 - Stop-loss monitoring
 - Position tracking via KV store
+=======
+Spawns watchers for each mint in your `WATCH_MINTS` env var and executes swaps when thresholds are met.
+>>>>>>> c2a881fec84b93f88fa264ce1407f4d2bc4b8ef8
 
 ## Code Style
 
@@ -255,8 +258,36 @@ pytest
 
 ## Support
 
+<<<<<<< HEAD
 - QuickNode Discord: [discord.gg/quicknode](https://discord.gg/quicknode)
 - GitHub Issues: [github.com/kaushalbalagurusamy/candlestick-nano/issues](https://github.com/kaushalbalagurusamy/candlestick-nano/issues)
+=======
+An AI agent guide (`AGENTS.md`) is provided for automated integrations, outlining module entry points, CI hooks, and testing workflows.
+
+## Project Structure
+
+```
+.
+├── .envrc              # direnv configuration to load environment vars
+├── AGENTS.md           # agent-specific guide for AI assistants
+├── api_contract.yaml   # OpenAPI spec for HTTP endpoints
+├── buy.py              # script to batch-buy tokens
+├── extractor.py        # pipeline to extract/filter candidate tokens
+├── exit_monitor.py     # daemon to monitor and auto-swap
+├── tokens.json         # input list of tokens for buy.py
+├── candidates.json     # output of extractor.py
+├── requirements.txt    # Python dependencies
+├── requirements-dev.txt# development dependencies
+├── pyproject.toml      # Ruff lint configuration
+├── pytest.ini          # pytest configuration
+├── .github/
+│   └── workflows/
+│       └── ci.yml      # GitHub Actions CI pipeline
+└── tests/
+    ├── test_env.py
+    └── test_end_to_end_devnet.py
+```
+>>>>>>> c2a881fec84b93f88fa264ce1407f4d2bc4b8ef8
 
 ---
 
