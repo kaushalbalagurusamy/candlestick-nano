@@ -36,6 +36,16 @@ This directory contains comprehensive development rules specifically tailored fo
   - Security protocols for private key management
   - Daily safety checklists
 
+#### `git_workflow.md`
+- **Purpose**: Automated version control and deployment workflows
+- **Focus**: Git automation, commit patterns, continuous integration
+- **Key Features**:
+  - Automated commit and push after features/fixes
+  - Conventional commit message standards
+  - Branch management and conflict resolution
+  - Repository health monitoring
+  - Pre-commit hooks and validation
+
 ## Integration with Existing Architecture
 
 These rules complement the existing architecture guidelines in the workspace:
@@ -106,6 +116,13 @@ Use these rules as checklists:
 - Comprehensive testing
 - Error handling patterns
 - Logging requirements
+
+### 🔄 Version Control Rules
+- Automated commit after features/fixes
+- Conventional commit messages
+- Immediate push to remote
+- Conflict resolution automation
+- Repository health monitoring
 
 ## Examples of Rule Application
 
