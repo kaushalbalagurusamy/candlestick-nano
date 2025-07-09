@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 ARG TZ
 ENV TZ="$TZ"
@@ -97,7 +97,7 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
 RUN pip install --user anthropic-claude-code || echo "Claude Code installation skipped"
 
 # Copy initialization script
-COPY init-dev-env.sh /usr/local/bin/
+COPY .devcontainer/init-dev-env.sh /usr/local/bin/
 USER root
 RUN chmod +x /usr/local/bin/init-dev-env.sh && \
   echo "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/init-dev-env.sh" >> /etc/sudoers.d/$USERNAME
