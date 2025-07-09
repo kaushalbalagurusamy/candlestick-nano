@@ -2,10 +2,17 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including Node.js
 RUN apt-get update && apt-get install -y \
     gcc \
+    curl \
+    gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Claude Code CLI globally
+RUN npm install -g @anthropic-ai/claude-code
 
 # Copy requirements first for better caching
 COPY requirements.txt .
@@ -18,6 +25,9 @@ COPY . .
 RUN useradd --create-home --shell /bin/bash app \
     && chown -R app:app /app
 USER app
+
+# Set up Claude CLI path for the app user
+ENV PATH="/usr/local/bin:$PATH"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

@@ -158,6 +158,99 @@ Then allow the `.envrc`:
 direnv allow config/.envrc
 ```
 
+## Claude CLI Integration
+
+The trading bot now supports Claude Code CLI integration within Docker containers for enhanced development and debugging capabilities.
+
+### Prerequisites for Claude CLI
+
+1. **Anthropic API Key**: Get your API key from [console.anthropic.com](https://console.anthropic.com/settings/keys)
+2. **Environment Setup**: Add your API key to the environment:
+
+```bash
+# Add to your config/.envrc or set as environment variable
+export ANTHROPIC_API_KEY=sk-ant-api03-your-actual-api-key-here
+```
+
+### Using Claude CLI in Docker
+
+The project includes a dedicated Claude CLI helper script that makes it easy to use Claude Code CLI within the containerized environment:
+
+#### Quick Start with Claude CLI
+
+```bash
+# Start the Claude CLI container
+./scripts/claude_cli_docker.sh start
+
+# Enter interactive Claude CLI session
+./scripts/claude_cli_docker.sh shell
+
+# Run a specific Claude command
+./scripts/claude_cli_docker.sh run "explain this codebase"
+
+# Check Claude CLI status
+./scripts/claude_cli_docker.sh status
+
+# Stop the Claude CLI container
+./scripts/claude_cli_docker.sh stop
+```
+
+#### Available Commands
+
+- **`start`**: Start the Claude CLI container
+- **`stop`**: Stop the Claude CLI container  
+- **`shell`**: Enter interactive shell with Claude CLI access
+- **`run "<command>"`**: Run a specific Claude command
+- **`status`**: Check container and configuration status
+- **`help`**: Show all available commands
+
+#### Example Usage
+
+```bash
+# Analyze the codebase
+./scripts/claude_cli_docker.sh run "give me an overview of this trading bot codebase"
+
+# Get help with debugging
+./scripts/claude_cli_docker.sh run "help me debug the entry daemon"
+
+# Review code quality
+./scripts/claude_cli_docker.sh run "review the trading logic for potential improvements"
+
+# Interactive session for complex tasks
+./scripts/claude_cli_docker.sh shell
+# Inside container:
+$ claude
+> explain the exit strategy implementation
+> help me optimize the performance monitoring
+```
+
+#### Configuration
+
+The Claude CLI integration includes:
+
+- **Automatic Installation**: Claude CLI is installed in all containers
+- **Environment Variables**: API key passed securely to containers
+- **Volume Mounting**: Your codebase is accessible to Claude
+- **Configuration Persistence**: Claude settings are preserved between sessions
+
+#### Features
+
+- 🔍 **Code Analysis**: Get detailed explanations of trading logic
+- 🐛 **Debugging Help**: AI-assisted debugging and troubleshooting  
+- 📝 **Code Review**: Automated code quality suggestions
+- 🚀 **Optimization**: Performance and architecture recommendations
+- 📚 **Documentation**: Auto-generated documentation and comments
+- 🧪 **Test Generation**: AI-powered test case creation
+
+### Environment Template
+
+Use the provided `env.template` file as a starting point:
+
+```bash
+cp env.template config/.envrc
+# Edit config/.envrc with your actual values
+```
+
 ## Quick Start (MVP)
 
 The fastest way to get started:

@@ -8,6 +8,7 @@ services:
     environment:
       - AWS_REGION=us-west-2
       - SERVICE_NAME=buy-monitor
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     env_file:
       - config/.envrc
     restart: unless-stopped
@@ -29,6 +30,7 @@ services:
     environment:
       - AWS_REGION=us-west-2
       - SERVICE_NAME=exit-monitor
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     env_file:
       - config/.envrc
     restart: unless-stopped
@@ -50,6 +52,7 @@ services:
     environment:
       - AWS_REGION=us-west-2
       - SERVICE_NAME=combined-daemon
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     env_file:
       - config/.envrc
     restart: unless-stopped
@@ -59,4 +62,28 @@ services:
       test: ["CMD", "python", "-c", "print('healthy')"]
       interval: 30s
       timeout: 10s
-      retries: 3 
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  claude-cli:
+    build: .
+    container_name: candlestick-claude-cli
+    command: ["tail", "-f", "/dev/null"]  # Keep container running
+    environment:
+      - AWS_REGION=us-west-2
+      - SERVICE_NAME=claude-cli
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    env_file:
+      - config/.envrc
+    volumes:
+      - .:/app
+      - ~/.anthropic:/home/app/.anthropic  # Mount Claude config directory
+    working_dir: /app
+    profiles:
+      - claude  # Only start when specifically requested
+    stdin_open: true
+    tty: true 
