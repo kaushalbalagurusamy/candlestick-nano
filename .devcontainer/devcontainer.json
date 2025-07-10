@@ -1,25 +1,15 @@
 {
-  "name": "Candlestick Trading Bot Dev",
+  "name": "Candlestick Bot",
   "build": {
-    "dockerfile": "Dockerfile",
-    "context": "."
+    "dockerfile": "Dockerfile"
   },
   "remoteUser": "developer",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
-  "workspaceFolder": "/workspace",
-  "postCreateCommand": "pip install -r requirements.txt || true",
+  "postCreateCommand": "pip install --user -r requirements.txt",
   "customizations": {
     "vscode": {
       "extensions": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "charliermarsh.ruff"
-      ],
-      "settings": {
-        "python.defaultInterpreter": "/usr/local/bin/python",
-        "python.linting.enabled": true,
-        "python.linting.ruffEnabled": true
-      }
+        "ms-python.python"
+      ]
     }
   }
 }
