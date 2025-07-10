@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-ARG TZ
+ARG TZ=America/Los_Angeles
 ENV TZ="$TZ"
 
 # Install basic development tools and Solana CLI dependencies
@@ -93,11 +93,10 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
   -a "export PATH=\"/home/$USERNAME/.local/bin:$PATH:/home/$USERNAME/.local/share/solana/install/active_release/bin\"" \
   -x
 
-# Install Claude Code (optional)
-RUN pip install --user anthropic-claude-code || echo "Claude Code installation skipped"
+# Claude Code installation skipped for now
 
 # Copy initialization script
-COPY .devcontainer/init-dev-env.sh /usr/local/bin/
+COPY init-dev-env.sh /usr/local/bin/
 USER root
 RUN chmod +x /usr/local/bin/init-dev-env.sh && \
   echo "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/init-dev-env.sh" >> /etc/sudoers.d/$USERNAME

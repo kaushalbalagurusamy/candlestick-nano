@@ -1,0 +1,100 @@
+{
+  // DevContainer configuration for Candlestick Nano Trading Bot
+  // Optimized for Python/Solana development with Git synchronization
+  "name": "Candlestick Trading Bot Dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "TZ": "${localEnv:TZ:America/Los_Angeles}"
+    }
+  },
+  "runArgs": [
+    "--cap-add=SYS_PTRACE",
+    "--security-opt",
+    "seccomp=unconfined"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "charliermarsh.ruff",
+        "eamodio.gitlens",
+        "usernamehw.errorlens",
+        "christian-kohler.path-intellisense",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "python.defaultInterpreter": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.ruffEnabled": true,
+        "python.formatting.provider": "black",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": "explicit"
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+          },
+          "zsh": {
+            "path": "zsh"
+          }
+        },
+        "files.exclude": {
+          "**/__pycache__": true,
+          "**/*.pyc": true,
+          ".pytest_cache": true,
+          ".mypy_cache": true,
+          ".ruff_cache": true
+        }
+      }
+    }
+  },
+  "remoteUser": "developer",
+  "mounts": [
+    "source=candlestick-bashhistory,target=/commandhistory,type=volume"
+  ],
+  "remoteEnv": {
+    "PYTHONUNBUFFERED": "1",
+    "CLAUDE_CONFIG_DIR": "/home/developer/.claude",
+    // Pass through Git credential helpers
+    "GIT_ASKPASS": "${localEnv:GIT_ASKPASS}",
+    "GIT_CREDENTIAL_HELPER": "${localEnv:GIT_CREDENTIAL_HELPER}",
+    "GIT_TERMINAL_PROMPT": "${localEnv:GIT_TERMINAL_PROMPT}",
+    "GIT_SSH_COMMAND": "${localEnv:GIT_SSH_COMMAND}",
+    // Solana environment
+    "SOLANA_CLUSTER": "devnet"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "pip install -r requirements.txt || true",
+  "postStartCommand": "echo '🚀 Candlestick Trading Bot Dev Environment Ready! Run: sudo /usr/local/bin/init-dev-env.sh to initialize'",
+  "forwardPorts": [
+    8080,
+    3000,
+    8899
+  ],
+  "portsAttributes": {
+    "8080": {
+      "label": "API Server",
+      "onAutoForward": "notify"
+    },
+    "3000": {
+      "label": "Dashboard",
+      "onAutoForward": "notify"
+    },
+    "8899": {
+      "label": "Solana RPC",
+      "onAutoForward": "silent"
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  }
+}
