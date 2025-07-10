@@ -1,6 +1,5 @@
 # entry_daemon.py
 import time
-import json
 import base64
 import requests
 import base58
@@ -108,7 +107,7 @@ async def process_new_token(pool_data: dict, client: AsyncClient):
         if age_seconds > config.max_token_age:
             print(f"Skipping {mint}: Too old ({age_seconds/3600:.1f} hours)")
             return
-    except (ValueError, TypeError) as e:
+    except (ValueError, TypeError):
         print(f"Skipping {mint}: Invalid timestamp format")
         return
     

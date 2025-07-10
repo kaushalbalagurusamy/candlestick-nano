@@ -1,10 +1,12 @@
-import os, json, asyncio, aiohttp, base64, base58
+import os
+import json
+import asyncio
+import aiohttp
 from datetime import datetime
 from solders.pubkey import Pubkey as PublicKey
 from solana.rpc.async_api import AsyncClient
-from solana.rpc.types import TokenAccountOpts, TxOpts
+from solana.rpc.types import TokenAccountOpts
 from spl.token.async_client import AsyncToken
-from solders.transaction import VersionedTransaction
 
 # ----------------------------------------
 # Configuration & Criteria (as before)

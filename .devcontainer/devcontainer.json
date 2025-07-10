@@ -10,7 +10,8 @@
   },
   "runArgs": [
     "--cap-add=SYS_PTRACE",
-    "--security-opt", "seccomp=unconfined"
+    "--security-opt",
+    "seccomp=unconfined"
   ],
   "customizations": {
     "vscode": {
@@ -57,10 +58,15 @@
   "remoteUser": "developer",
   "mounts": [
     "source=candlestick-bashhistory,target=/commandhistory,type=volume",
+    "source=${localEnv:HOME}/.claude,target=/home/developer/.claude,type=bind",
+    // Mount Claude CLI binary
+    "source=/usr/local/share/npm-global/bin/claude,target=/usr/local/bin/claude,type=bind,readonly",
     // Mount Git configuration for proper authentication
     "source=${localEnv:HOME}/.gitconfig,target=/home/developer/.gitconfig,type=bind,readonly",
     // Mount SSH keys for Git operations
-    "source=${localEnv:HOME}/.ssh,target=/home/developer/.ssh,type=bind,readonly"
+    "source=${localEnv:HOME}/.ssh,target=/home/developer/.ssh,type=bind,readonly",
+    // Mount Solana config if it exists
+    "source=${localEnv:HOME}/.config/solana,target=/home/developer/.config/solana,type=bind"
   ],
   "remoteEnv": {
     "PYTHONUNBUFFERED": "1",
@@ -77,7 +83,11 @@
   "workspaceFolder": "/workspace",
   "postCreateCommand": "pip install -r requirements.txt && pip install -r requirements-dev.txt || true",
   "postStartCommand": "echo '🚀 Candlestick Trading Bot Dev Environment Ready! Run: sudo /usr/local/bin/init-dev-env.sh to initialize'",
-  "forwardPorts": [8080, 3000, 8899],
+  "forwardPorts": [
+    8080,
+    3000,
+    8899
+  ],
   "portsAttributes": {
     "8080": {
       "label": "API Server",

@@ -3,7 +3,6 @@ Dependency injection container for better testability
 """
 from typing import Protocol, Optional, Dict, Any
 from dataclasses import dataclass
-import asyncio
 from config import config
 
 class ClientProtocol(Protocol):
