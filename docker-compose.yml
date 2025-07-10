@@ -4,7 +4,7 @@ services:
   buy-monitor:
     build: .
     container_name: candlestick-buy-monitor
-    command: ["python", "src/entry_daemon.py"]
+    command: ["python3", "src/entry_daemon.py"]
     environment:
       - AWS_REGION=us-west-2
       - SERVICE_NAME=buy-monitor
@@ -13,7 +13,7 @@ services:
       - config/.envrc
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "print('healthy')"]
+      test: ["CMD", "python3", "-c", "print('healthy')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -26,7 +26,7 @@ services:
   exit-monitor:
     build: .
     container_name: candlestick-exit-monitor
-    command: ["python", "src/exit_daemon.py"]
+    command: ["python3", "src/exit_daemon.py"]
     environment:
       - AWS_REGION=us-west-2
       - SERVICE_NAME=exit-monitor
@@ -35,7 +35,7 @@ services:
       - config/.envrc
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "print('healthy')"]
+      test: ["CMD", "python3", "-c", "print('healthy')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -48,7 +48,7 @@ services:
   combined-daemon:
     build: .
     container_name: candlestick-combined
-    command: ["python", "src/combined_daemon.py"]
+    command: ["python3", "src/combined_daemon.py"]
     environment:
       - AWS_REGION=us-west-2
       - SERVICE_NAME=combined-daemon
@@ -59,7 +59,7 @@ services:
     ports:
       - "8000:8000"
     healthcheck:
-      test: ["CMD", "python", "-c", "print('healthy')"]
+      test: ["CMD", "python3", "-c", "print('healthy')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -77,13 +77,29 @@ services:
       - AWS_REGION=us-west-2
       - SERVICE_NAME=claude-cli
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - NODE_ENV=development
     env_file:
       - config/.envrc
     volumes:
-      - .:/app
-      - ~/.anthropic:/home/app/.anthropic  # Mount Claude config directory
-    working_dir: /app
+      # Mount the entire project for development
+      - .:/home/claude/workspace:cached
+      # Persist Claude configuration
+      - claude-config:/home/claude/.anthropic
+      - claude-cache:/home/claude/.claude
+      # Persist shell history and config
+      - claude-home:/home/claude/.zsh_history
+    working_dir: /home/claude/workspace
     profiles:
       - claude  # Only start when specifically requested
     stdin_open: true
-    tty: true 
+    tty: true
+    user: "1000:100"  # Match the claude user from Dockerfile
+    init: true  # Proper signal handling
+
+volumes:
+  claude-config:
+    driver: local
+  claude-cache:
+    driver: local
+  claude-home:
+    driver: local 

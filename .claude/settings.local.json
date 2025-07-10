@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(claude:*)",
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(chmod:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git config:*)",
+      "Bash(ping:*)",
+      "Bash(GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin codex/explain-codebase-structure-and-key-concepts)",
+      "Bash(pip3 freeze:*)",
+      "Bash(pip3 install:*)",
+      "Bash(source:*)",
+      "Bash(pip freeze)",
+      "Bash(venv/bin/python3 -m pip install:*)",
+      "Bash(venv/bin/python -m pip install:*)",
+      "Bash(pip3 list:*)",
+      "Bash(python3:*)",
+      "Bash(solana:*)",
+      "Bash(grep:*)",
+      "Bash(pip install:*)",
+      "Bash(ruff check:*)",
+      "Bash(pytest:*)",
+      "Bash(docker:*)",
+      "Bash(/dev/null)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": false
+}

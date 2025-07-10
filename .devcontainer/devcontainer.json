@@ -1,15 +1,94 @@
 {
-  "name": "Candlestick Bot",
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
-  "remoteUser": "developer",
-  "postCreateCommand": "pip install --user -r requirements.txt",
+  "name": "Candlestick Nano Trading Bot with Claude Code",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "claude-cli",
+  "workspaceFolder": "/home/claude/workspace",
+  "shutdownAction": "stopCompose",
+  
+  // Configure tool-specific properties
   "customizations": {
     "vscode": {
       "extensions": [
-        "ms-python.python"
-      ]
+        // Python development
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "ms-python.isort",
+        "ms-python.pylint",
+        
+        // General development
+        "ms-vscode.vscode-typescript-next",
+        "ms-vscode.vscode-json",
+        "redhat.vscode-yaml",
+        
+        // Git and version control
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+        
+        // Docker support
+        "ms-vscode-remote.remote-containers",
+        "ms-azuretools.vscode-docker",
+        
+        // Claude Code CLI integration
+        "ms-vscode.remote-explorer",
+        
+        // Additional helpful extensions
+        "streetsidesoftware.code-spell-checker",
+        "ms-vscode.live-server",
+        "formulahendry.auto-rename-tag"
+      ],
+      
+      "settings": {
+        "python.defaultInterpreterPath": "/home/claude/venv/bin/python",
+        "python.terminal.activateEnvironment": true,
+        "python.formatting.provider": "black",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": true
+        },
+        "files.exclude": {
+          "**/__pycache__": true,
+          "**/*.pyc": true,
+          "**/node_modules": true
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/bin/zsh",
+            "args": ["-l"]
+          }
+        }
+      }
     }
+  },
+  
+  // Features to add to the dev container
+  "features": {},
+  
+  // Use 'forwardPorts' to make a list of ports inside the container available locally
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": {
+      "label": "Trading Bot API",
+      "onAutoForward": "notify"
+    }
+  },
+  
+  // Use 'postCreateCommand' to run commands after the container is created
+  "postCreateCommand": "echo 'Welcome to Candlestick Nano Trading Bot Development Environment!' && echo 'Claude CLI is available. Try: claude --version' && claude --version || echo 'Claude CLI not yet authenticated. Run claude to authenticate.'",
+  
+  // Comment out to connect as the container's root user instead
+  "remoteUser": "claude",
+  
+  // Mount additional volumes for persistence
+  "mounts": [
+    "source=${localWorkspaceFolder}/.devcontainer/claude-workspace,target=/home/claude/claude-workspace,type=bind,consistency=cached"
+  ],
+  
+  // Environment variables
+  "containerEnv": {
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
+    "WORKSPACE_ROOT": "/home/claude/workspace"
   }
 }
