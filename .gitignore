@@ -29,8 +29,10 @@ venv/
 
 # Env files
 .env
+.env.*
 .envrc
-.envrc.sample
+!.envrc.sample
+!.env.example
 
 # Pytest cache
 .pytest_cache/

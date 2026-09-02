@@ -67,7 +67,8 @@ candlestick-nano/
 │   ├── .envrc.sample         # Environment configuration template
 │   ├── api_contract.yaml     # OpenAPI 3.0 specification for service endpoints
 │   └── tokens.json           # Watchlist and seed token configurations
-├── infra/                    # Terraform definitions for AWS ECS Fargate deployment
+├── docs/
+│   └── adr/                  # Architectural Decision Records (ADRs 0001 - 0005)
 ├── scripts/                  # Operational scripts for production and container management
 ├── tests/                    # Unit, integration, and devnet end-to-end test suite
 ├── docker-compose.yml        # Multi-container orchestration definition
@@ -190,6 +191,16 @@ pytest tests/test_end_to_end_devnet.py -v
 # Run with stdout logging
 pytest -s
 ```
+
+## Technical Documentation & ADRs
+
+All architectural choices and operational guidelines are recorded in [`docs/adr/`](docs/adr/):
+
+* [`docs/adr/0001-asyncio-daemon-execution-architecture.md`](docs/adr/0001-asyncio-daemon-execution-architecture.md) — Asyncio Daemon Execution Architecture
+* [`docs/adr/0002-jupiter-dex-routing-and-swap-protocol.md`](docs/adr/0002-jupiter-dex-routing-and-swap-protocol.md) — Jupiter DEX Routing and Swap Protocol
+* [`docs/adr/0003-pre-trade-safety-filters-and-freeze-detection.md`](docs/adr/0003-pre-trade-safety-filters-and-freeze-detection.md) — Pre-Trade Safety Filters and Freeze Detection
+* [`docs/adr/0004-dual-track-position-risk-management.md`](docs/adr/0004-dual-track-position-risk-management.md) — Dual-Track Position Risk Management
+* [`docs/adr/0005-elimination-of-cloud-infrastructure-in-favor-of-self-hosting.md`](docs/adr/0005-elimination-of-cloud-infrastructure-in-favor-of-self-hosting.md) — Elimination of Cloud Infrastructure in Favor of Self-Hosting
 
 ---
 
