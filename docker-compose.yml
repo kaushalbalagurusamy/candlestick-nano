@@ -6,7 +6,7 @@ services:
     container_name: candlestick-buy-monitor
     command: ["python3", "src/entry_daemon.py"]
     environment:
-      - AWS_REGION=us-west-2
+      - SOLANA_CLUSTER=devnet
       - SERVICE_NAME=buy-monitor
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     env_file:
@@ -28,7 +28,7 @@ services:
     container_name: candlestick-exit-monitor
     command: ["python3", "src/exit_daemon.py"]
     environment:
-      - AWS_REGION=us-west-2
+      - SOLANA_CLUSTER=devnet
       - SERVICE_NAME=exit-monitor
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     env_file:
@@ -50,7 +50,7 @@ services:
     container_name: candlestick-combined
     command: ["python3", "src/combined_daemon.py"]
     environment:
-      - AWS_REGION=us-west-2
+      - SOLANA_CLUSTER=devnet
       - SERVICE_NAME=combined-daemon
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     env_file:
@@ -74,7 +74,7 @@ services:
     container_name: candlestick-claude-cli
     command: ["tail", "-f", "/dev/null"]  # Keep container running
     environment:
-      - AWS_REGION=us-west-2
+      - SOLANA_CLUSTER=devnet
       - SERVICE_NAME=claude-cli
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - NODE_ENV=development

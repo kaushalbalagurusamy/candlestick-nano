@@ -201,6 +201,7 @@ All architectural choices and operational guidelines are recorded in [`docs/adr/
 * [`docs/adr/0003-pre-trade-safety-filters-and-freeze-detection.md`](docs/adr/0003-pre-trade-safety-filters-and-freeze-detection.md) — Pre-Trade Safety Filters and Freeze Detection
 * [`docs/adr/0004-dual-track-position-risk-management.md`](docs/adr/0004-dual-track-position-risk-management.md) — Dual-Track Position Risk Management
 * [`docs/adr/0005-elimination-of-cloud-infrastructure-in-favor-of-self-hosting.md`](docs/adr/0005-elimination-of-cloud-infrastructure-in-favor-of-self-hosting.md) — Elimination of Cloud Infrastructure in Favor of Self-Hosting
+* [`docs/adr/0006-transition-to-embedded-zero-cloud-operating-model.md`](docs/adr/0006-transition-to-embedded-zero-cloud-operating-model.md) — Transition to Embedded Zero-Cloud Operating Model
 
 ---
 
