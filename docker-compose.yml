@@ -1,65 +1,18 @@
-version: '3.8'
-
 services:
-  buy-monitor:
-    build: .
-    container_name: candlestick-buy-monitor
-    command: ["python3", "src/entry_daemon.py"]
-    environment:
-      - SOLANA_CLUSTER=devnet
-      - SERVICE_NAME=buy-monitor
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-    env_file:
-      - config/.envrc
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python3", "-c", "print('healthy')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  exit-monitor:
-    build: .
-    container_name: candlestick-exit-monitor
-    command: ["python3", "src/exit_daemon.py"]
-    environment:
-      - SOLANA_CLUSTER=devnet
-      - SERVICE_NAME=exit-monitor
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-    env_file:
-      - config/.envrc
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python3", "-c", "print('healthy')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
   combined-daemon:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: candlestick-combined
+    restart: unless-stopped
     command: ["python3", "src/combined_daemon.py"]
     environment:
       - SOLANA_CLUSTER=devnet
       - SERVICE_NAME=combined-daemon
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-    env_file:
-      - config/.envrc
-    restart: unless-stopped
     ports:
       - "8000:8000"
     healthcheck:
-      test: ["CMD", "python3", "-c", "print('healthy')"]
+      test: ["CMD", "python3", "-c", "import sys; sys.exit(0)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -69,37 +22,48 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  claude-cli:
-    build: .
-    container_name: candlestick-claude-cli
-    command: ["tail", "-f", "/dev/null"]  # Keep container running
+  entry-daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: candlestick-entry-daemon
+    restart: unless-stopped
+    command: ["python3", "src/entry_daemon.py"]
     environment:
       - SOLANA_CLUSTER=devnet
-      - SERVICE_NAME=claude-cli
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - NODE_ENV=development
-    env_file:
-      - config/.envrc
-    volumes:
-      # Mount the entire project for development
-      - .:/home/claude/workspace:cached
-      # Persist Claude configuration
-      - claude-config:/home/claude/.anthropic
-      - claude-cache:/home/claude/.claude
-      # Persist shell history and config
-      - claude-home:/home/claude/.zsh_history
-    working_dir: /home/claude/workspace
+      - SERVICE_NAME=entry-daemon
     profiles:
-      - claude  # Only start when specifically requested
-    stdin_open: true
-    tty: true
-    user: "1000:100"  # Match the claude user from Dockerfile
-    init: true  # Proper signal handling
+      - standalone
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-volumes:
-  claude-config:
-    driver: local
-  claude-cache:
-    driver: local
-  claude-home:
-    driver: local 
+  exit-daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: candlestick-exit-daemon
+    restart: unless-stopped
+    command: ["python3", "src/exit_daemon.py"]
+    environment:
+      - SOLANA_CLUSTER=devnet
+      - SERVICE_NAME=exit-monitor
+    profiles:
+      - standalone
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

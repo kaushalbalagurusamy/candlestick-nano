@@ -1,76 +1,56 @@
-# Use Node.js 20 as base image for better Claude Code CLI compatibility
-FROM node:20-slim
+# Multi-stage Dockerfile for Candlestick Nano (Solana HFT & Liquidity Daemon)
 
-# Set working directory
-WORKDIR /app
+# ===== Stage 1: Build Dependencies =====
+FROM python:3.11-slim as builder
 
-# Install system dependencies required for Python, Claude CLI, and security
-RUN apt-get update && apt-get install -y \
-    # Python and development tools
-    python3 \
-    python3-pip \
-    python3-venv \
-    # System utilities
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
     curl \
     git \
-    zsh \
-    fzf \
-    ripgrep \
-    # Build essentials for npm packages
-    build-essential \
-    # Security and networking tools
-    iptables \
-    netcat-openbsd \
-    # Cleanup
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user for security
-RUN useradd --create-home --shell /bin/zsh --uid 1000 --gid 100 claude \
-    && mkdir -p /home/claude/.anthropic \
-    && chown -R claude:users /home/claude
+COPY requirements.txt .
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --upgrade pip setuptools wheel && \
+    /opt/venv/bin/pip install -r requirements.txt
 
-# Switch to non-root user early
-USER claude
-WORKDIR /home/claude
+# ===== Stage 2: Minimal Production Runtime =====
+FROM python:3.11-slim as runtime
 
-# Set up Node.js environment for user
-ENV NODE_ENV=production
-ENV PATH="/home/claude/.local/bin:$PATH"
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/opt/venv/bin:$PATH"
 
-# Install Claude Code CLI globally for the user
-RUN npm config set prefix '/home/claude/.local' \
-    && npm install -g @anthropic-ai/claude-code
+WORKDIR /app
 
-# Create Python virtual environment
-RUN python3 -m venv /home/claude/venv
-ENV PATH="/home/claude/venv/bin:$PATH"
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
-COPY --chown=claude:users requirements.txt /home/claude/
-RUN pip install --no-cache-dir -r requirements.txt
+# Create non-root user for security
+RUN useradd --create-home --shell /bin/bash --uid 1000 trader && \
+    mkdir -p /app/logs /app/data && \
+    chown -R trader:trader /app
 
-# Copy application code
-COPY --chown=claude:users . /home/claude/app/
-WORKDIR /home/claude/app
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
 
-# Create necessary directories and set permissions
-RUN mkdir -p /home/claude/app/logs \
-    && mkdir -p /home/claude/app/data \
-    && mkdir -p /home/claude/.claude
+# Copy application source
+COPY --chown=trader:trader . /app
 
-# Set up shell configuration for better UX
-RUN echo 'export PATH="/home/claude/.local/bin:/home/claude/venv/bin:$PATH"' >> /home/claude/.zshrc \
-    && echo 'export ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY"' >> /home/claude/.zshrc \
-    && echo 'alias ll="ls -la"' >> /home/claude/.zshrc \
-    && echo 'alias claude-check="claude --version"' >> /home/claude/.zshrc
+USER trader
 
-# Health check for the service
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python3 -c "import sys; sys.exit(0)" && node --version && claude --version || exit 1
-
-# Expose ports for services
 EXPOSE 8000
 
-# Default command
-CMD ["python3", "src/combined_daemon.py"] 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD python3 -c "import sys; sys.exit(0)" || exit 1
+
+CMD ["python3", "src/combined_daemon.py"]

@@ -1,5 +1,8 @@
 # Candlestick Nano
 
+[![CI](https://github.com/kaushalbalagurusamy/candlestick-nano/actions/workflows/ci.yml/badge.svg)](https://github.com/kaushalbalagurusamy/candlestick-nano/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 On-chain high-frequency trading algorithm and automated liquidity execution engine for the Solana blockchain. Integrates QuickNode Metis for sub-millisecond pool discovery with Jupiter DEX routing for automated trade execution, take-profit limit orders, and stop-loss protection in volatile cryptocurrency markets.
 
 ---
@@ -89,9 +92,21 @@ candlestick-nano/
 
 ## Quickstart
 
-### 1. Installation
+### Option A: Docker Compose (Recommended)
 
-Clone the repository and install the dependencies:
+Run the containerized trading daemon in an isolated environment:
+
+```bash
+# Build and run the combined daemon in the background
+docker compose up --build -d combined-daemon
+
+# Stream structured logs
+docker compose logs -f combined-daemon
+```
+
+### Option B: Local Python Installation
+
+Clone the repository and install dependencies:
 
 ```bash
 git clone https://github.com/kaushalbalagurusamy/candlestick-nano.git

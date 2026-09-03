@@ -68,7 +68,7 @@ infra/tfplan*
 infra/*.zip
 
 # Docker
-.dockerignore
+# (.dockerignore is tracked in git)
 
 # IDE
 .vscode/
