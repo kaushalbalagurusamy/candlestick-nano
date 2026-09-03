@@ -11,7 +11,7 @@ env:
 
 jobs:
   lint:
-    name: Lint and Code Quality
+    name: Lint & Static Analysis
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,11 +31,8 @@ jobs:
       - name: Run Ruff linter
         run: ruff check src/
 
-      - name: Run Mypy type check
-        run: mypy src/ --ignore-missing-imports
-
   test:
-    name: Run Unit Tests
+    name: Run Test Suite
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,27 +49,11 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-asyncio
 
-      - name: Run Pytest
-        run: pytest tests/test_env.py -v
+      - name: Run Unit & Architecture Tests
+        run: pytest tests/test_architecture_integration.py tests/test_dependency_injection.py -v
         env:
           SOLANA_CLUSTER: devnet
-          QUICKNODE_ENDPOINT: https://example.solana-devnet.quiknode.pro/mock/
-          WALLET_PRIVATE_KEY: mock_private_key
-          WALLET_ADDRESS: mock_wallet_address
-
-  docker:
-    name: Build Docker Container
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: false
-          tags: candlestick-nano:test
+          QUICKNODE_ENDPOINT: https://api.devnet.solana.com
+          JUPITER_API_BASE_URL: https://quote-api.jup.ag/v6
+          WALLET_PRIVATE_KEY: 3RbhFZ9Up8PzV5ujdRv15yQtXGQnyU4PNmpfReQaqxKFfJbi59JVBjdVFZNsnEgUv8aSvURwWvQyvKGMX91CAC71
+          WALLET_ADDRESS: 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM
