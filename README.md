@@ -1,6 +1,6 @@
 # Candlestick Nano
 
-Low-latency automated trading engine for the Solana blockchain. Integrates QuickNode Metis for real-time liquidity pool discovery with Jupiter DEX routing for automated trade execution, take-profit limit orders, and stop-loss protection.
+On-chain high-frequency trading algorithm and automated liquidity execution engine for the Solana blockchain. Integrates QuickNode Metis for sub-millisecond pool discovery with Jupiter DEX routing for automated trade execution, take-profit limit orders, and stop-loss protection in volatile cryptocurrency markets.
 
 ---
 
